@@ -2,23 +2,47 @@
 
 namespace Shared{
 
-template<class IdType>
-INode<IdType>::INode()
+VisualNode::VisualNode()
+    : INode()
+    , mRect()
 {
-
 }
 
-template<class ConsumedDataType, class ProducedDataType>
-ExecutableNode<ConsumedDataType, ProducedDataType>::ExecutableNode()
+QRectF
+VisualNode::rect() const
 {
-
+    return mRect;
 }
 
-template<class ConsumedDataType, class ProducedDataType>
-ProducedDataType
-ExecutableNode<ConsumedDataType, ProducedDataType>::execute(ConsumedDataType data)
+void
+VisualNode::setRect(QRectF rect)
 {
+    mRect = std::move(rect);
+}
 
+const QString&
+VisualNode::text() const
+{
+    return mText;
+}
+
+void
+VisualNode::setText(QString text)
+{
+    mText = std::move(text);
+}
+
+QPointF
+VisualNode::center() const
+{
+    return mRect.center();
+}
+
+
+QSizeF
+VisualNode::size() const
+{
+    return mRect.size();
 }
 
 

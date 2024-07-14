@@ -31,10 +31,10 @@ set(PROJECT_SOURCES
   
   Node.h
   Node.cpp
-  NodeGroup.h
-  NodeGroup.cpp
-  NodeCollection.h
-  NodeCollection.cpp
+  ConnectionHandler.h
+  ConnectionHandler.cpp
+  NodeManager.h
+  NodeManager.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

@@ -25,8 +25,7 @@ struct has_##METHOD_NAME : std::false_type {}; \
 template<class T> \
 struct has_##METHOD_NAME<T, std::void_t<decltype(std::declval<T>().METHOD_NAME())>> : std::true_type {};
 
-HAS_METHOD(pos)
 HAS_METHOD(rect)
-HAS_METHOD(size)
+HAS_METHOD(setRect)
 
 #endif // StaticTypdefs_H

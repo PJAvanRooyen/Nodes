@@ -1,5 +1,5 @@
 #include "CollisionHanlder.h"
 
-namespace UI{
+namespace Core{
 
 }

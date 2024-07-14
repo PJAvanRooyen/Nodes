@@ -14,11 +14,17 @@ CentralWidgetView::CentralWidgetView(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
-void CentralWidgetView::addNode(){
-    auto* node = new Node();
-    node->setRect(QRectF(QPointF(0, 0), QSizeF(100, 100)));
+void CentralWidgetView::addNode(QRectF rect, QString text, QString tooltip)
+{
+    auto* node = new GraphicsItem<QGraphicsEllipseItem, quint64>(1);
+    node->setText(std::move(text));
+    node->setToolTip(std::move(tooltip));
+    node->setRect(rect);
 
-    mScene->addItem(node);
+    node->setPen(QPen(Qt::black));
+    node->setBrush(Qt::red);
+
+    scene()->addItem(node);
 }
 
 void CentralWidgetView::mousePressEvent(QMouseEvent *event)
@@ -34,13 +40,9 @@ void CentralWidgetView::mouseDoubleClickEvent(QMouseEvent *event)
 
     static const QSizeF kNodeSize = QSizeF(100, 100);
     static const qreal kNodeRadius = kNodeSize.width()/2.0;
-    auto* node = new NodeDescriptive("text", "details");
-    node->setRect(QRectF(QPointF(scenePos.x() - kNodeRadius, scenePos.y() - kNodeRadius), kNodeSize));
 
-    node->setPen(QPen(Qt::black));
-    node->setBrush(Qt::red);
-
-    scene()->addItem(node);
+    QRectF rect = QRectF(QPointF(scenePos.x() - kNodeRadius, scenePos.y() - kNodeRadius), kNodeSize);
+    emit nodeAdd(rect);
 }
 
 void CentralWidgetView::resizeEvent(QResizeEvent *event)

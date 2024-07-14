@@ -10,12 +10,20 @@ namespace UI {
 
 class CentralWidget : public QWidget
 {
+    Q_OBJECT
+
+Q_SIGNALS:
+    void nodeAdd(QRectF rect, QString text, QString tooltip);
+
+private Q_SLOTS:
+    void onNodeAdd(QRectF rect, QString text, QString tooltip);
+
 public:
     CentralWidget(QWidget *parent = nullptr);
 
     QPointer<CentralWidgetView> view();
 
-    void addNode();
+    void addNode(QRectF rect, QString text = QString(), QString tooltip = QString());
 
 private:
     std::unique_ptr<CentralWidgetView> mView;

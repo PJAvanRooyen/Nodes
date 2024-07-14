@@ -13,12 +13,12 @@ class CentralWidgetView : public QGraphicsView
     Q_OBJECT
 
 Q_SIGNALS:
-
+    void nodeAdd(QRectF rect, QString text = QString(), QString tooltip = QString());
 
 public:
     CentralWidgetView(QWidget *parent = nullptr);
 
-    void addNode();
+    void addNode(QRectF rect, QString text = QString(), QString tooltip = QString());
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

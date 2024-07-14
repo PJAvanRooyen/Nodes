@@ -2,56 +2,41 @@
 #define Node_H
 
 #include <QUuid>
+#include <QRectF>
 
 namespace Shared{
 
-template<class IdType>
 class INode
 {
 public:
-    using NodeIdType = IdType;
-
-    virtual const IdType& id() const = 0;
+    virtual ~INode() = default;
 
 protected:
-    INode();
+    INode(){
+
+    }
 };
 
-template<class IdType>
-class Node : public INode<IdType>
+class VisualNode : public INode
 {
 public:
-    using NodeIdType = IdType;
+    VisualNode();
 
-    template<class NodeIdType = IdType, std::enable_if_t<std::is_same_v<NodeIdType, QUuid>>* = Q_NULLPTR>
-    Node(QUuid id = QUuid::createUuid())
-        : INode<IdType>()
-        , mId(std::move(id))
-    {
+    QRectF rect() const;
 
-    }
+    void setRect(QRectF rect);
 
-    template<class NodeId = IdType, std::enable_if_t<!std::is_same_v<IdType, QUuid>>* = Q_NULLPTR>
-    Node(NodeId id)
-        : INode<IdType>()
-        , mId(std::move(id))
-    {
+    const QString& text() const;
 
-    }
+    void setText(QString text);
 
-    const IdType& id() const final;
+    QPointF center() const;
+
+    QSizeF size() const;
 
 private:
-    IdType mId;
-};
-
-template<class ConsumedDataType, class ProducedDataType>
-class ExecutableNode : public Node<int64_t>
-{
-public:
-    ExecutableNode();
-
-    ProducedDataType execute(ConsumedDataType data);
+    QRectF mRect;
+    QString mText;
 };
 
 }
