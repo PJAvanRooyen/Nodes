@@ -26,8 +26,8 @@ set(PROJECT_SOURCES
   Scene.cpp
   GraphicsNode.h
   GraphicsNode.cpp
-  CollisionHanlder.h
-  CollisionHanlder.cpp
+  InteractionHandler.h
+  InteractionHandler.cpp
   
   Node.h
   Node.cpp

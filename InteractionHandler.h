@@ -1,5 +1,5 @@
-#ifndef CollisionHandler_H
-#define CollisionHandler_H
+#ifndef InteractionHandler_H
+#define InteractionHandler_H
 
 #include "StaticTypedefs.h"
 
@@ -10,29 +10,12 @@
 
 namespace Core {
 
-class ICollisionHanlder
-{
-public:
-    enum ItemFlag{
-        ItemsHaveVariableSize = 1,
-    };
-    Q_DECLARE_FLAGS(ItemFlags, ItemFlag)
-
-    virtual ~ICollisionHanlder() = default;
-
-protected:
-    ICollisionHanlder(){
-
-    }
-};
-Q_DECLARE_OPERATORS_FOR_FLAGS(ICollisionHanlder::ItemFlags)
-
 template<class ItemType>
-using InteractFn = void (*)(ItemType* item, std::vector<ItemType*>& neighbours);
+using InteractFn = bool (*)(ItemType* item, std::vector<ItemType*>& neighbours);
 
 namespace InteractFnExample {
 template<class ItemType>
-void collidingOvals(ItemType* item, std::vector<ItemType*>& neighbours){
+bool collidingCircles(ItemType* item, std::vector<ItemType*>& neighbours){
     auto collideOvals = [](const QRectF& itemRect, const QRectF& neighbourRect) -> QPointF {
         QPointF offset = itemRect.center() - neighbourRect.center();
         double distance = std::hypot(offset.x(), offset.y());
@@ -48,6 +31,7 @@ void collidingOvals(ItemType* item, std::vector<ItemType*>& neighbours){
         return moveVector;
     };
 
+    bool isSolved = true;
     QRectF rect = item->rect();
 
     //! the movement it wants to make to avoid existing collisions.
@@ -59,7 +43,7 @@ void collidingOvals(ItemType* item, std::vector<ItemType*>& neighbours){
     }
 
     if(qFuzzyIsNull(displacementSum.x()) && qFuzzyIsNull(displacementSum.y())){
-        return;
+        return isSolved;
     }
 
     //! the movement it wants to make afterwards to avoid new collisions.
@@ -73,25 +57,34 @@ void collidingOvals(ItemType* item, std::vector<ItemType*>& neighbours){
 
     if(qFuzzyIsNull(postMoveDisplacementSum.x()) && qFuzzyIsNull(postMoveDisplacementSum.y())){
         rect.translate(displacementSum);
+        isSolved = true;
     }else{
-        // Move the rect to the average position between:
+        // Move the rect to:
         // - the movement it wants to make to avoid existing collisions.
-        // - the movement it wants to make afterwards to avoid new collisions.
-        QPointF avgMove = (displacementSum + postMoveDisplacementSum) / 2.0;
-        rect.translate(avgMove);
+        // - half the movement it wants to make afterwards to avoid new collisions.
+        QPointF displacement = displacementSum + (postMoveDisplacementSum / 2.0);
+        rect.translate(displacement);
+
+        // This final result will result in some minor overlap,
+        // therfore the interaction has not yet been fully solved.
+        isSolved = false;
     }
     item->setRect(rect);
+    return isSolved;
 }
 }
 
-template <class ItemType>
-class CollisionHandler : public ICollisionHanlder
+class InteractionHandler
 {
 public:
-    CollisionHandler(ItemFlags flags = ItemFlag::ItemsHaveVariableSize)
+    enum ItemFlag{
+        ItemsHaveVariableSize = 1,
+    };
+    Q_DECLARE_FLAGS(ItemFlags, ItemFlag)
+
+    InteractionHandler(ItemFlags flags = ItemFlag::ItemsHaveVariableSize)
         : mItemFlags(flags)
         , mMaxInteractionDistance(0)
-        , mInteractFn(&InteractFnExample::collidingOvals)
     {
     }
 
@@ -103,14 +96,16 @@ public:
      * \brief calcualtes the relative positions of items and moves them
      * based on an interaction function if they interact.
      * \param items, the items being moved.
+     * \param interactFn, the function that dictates how an item should interact with its neighbours.
+     * \return true if all interactions resulted in a state where there is no more interaction required.
      */
-    template <template<typename...> class ListType, typename Arg>
-    void solve(ListType<Arg*>& items) const{
+    template <template<typename...> class ListType, typename ItemType>
+    bool solve(ListType<ItemType*>& items, InteractFn<ItemType> interactFn = &InteractFnExample::collidingCircles) const{
         if(mItemFlags & ItemFlag::ItemsHaveVariableSize){
-            solveVariableSize(items);
+            return solveVariableSize(items, interactFn);
         }else{
             // TODO: solve without needing to measure every item.
-            solveVariableSize(items);
+            return solveVariableSize(items, interactFn);
         }
     }
 
@@ -121,9 +116,11 @@ private:
      * \details this optimization would work better for small items that are far apart.
      * \note this solution supports variable sized elements.
      * \param items, the items being moved.
+     * \param interactFn, the function that dictates how an item should interact with its neighbours.
+     * \return true if all interactions resulted in a state where there is no more interaction required.
      */
-    template <template<typename...> class ListType>
-    void solveVariableSize(ListType<ItemType*>& items) const{
+    template <template<class...> class ListType, class ItemType>
+    bool solveVariableSize(ListType<ItemType*>& items, InteractFn<ItemType> interactFn) const{
         static_assert(std::is_same_v<ItemType, ItemType>);
         static_assert(is_list<ListType<ItemType*>>());
         static_assert(has_rect<ItemType>());
@@ -135,6 +132,8 @@ private:
         std::pair<double /*x*/, double /*y*/> largestSize;
         xPositions.reserve(itemCount);
         yPositions.reserve(itemCount);
+
+        bool isSolved = true;
 
         // Create sorted lists of positions,
         // this is used to efficiently calculate item proximities.
@@ -303,10 +302,12 @@ private:
                 ++laterYPosItemIndexIt;
             }
 
-            mInteractFn(item, neighbours);
+            isSolved = interactFn(item, neighbours) && isSolved;
 
             ++itemXIndex;
         }
+
+        return isSolved;
     }
 
 private:
@@ -323,12 +324,9 @@ private:
      *          an item will check 50px away from its own corners for overlap with other items' corners.
      */
     int32_t mMaxInteractionDistance;
-
-    /*!
-     * \brief the function that dictates how an item should interact with its neighbours.
-     */
-    InteractFn<ItemType> mInteractFn;
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(InteractionHandler::ItemFlags)
+
 }
-#endif // CollisionHandler_H
+#endif // InteractionHandler_H

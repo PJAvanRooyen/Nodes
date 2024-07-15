@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "CentralWidget.h"
 #include "NodeManager.h"
-#include "CollisionHanlder.h"
+#include "InteractionHandler.h"
 
 #include <QApplication>
 #include <QScreen>
@@ -59,13 +59,17 @@ int main(int argc, char *argv[])
     }
 
 
-    using CollisionHandler = Core::CollisionHandler<Shared::VisualNode>;
-    auto collisionHanlder = CollisionHandler(Core::ICollisionHanlder::ItemsHaveVariableSize);
-    collisionHanlder.setMaxInteractionDistance(0);
+    using InteractionHandler = Core::InteractionHandler;
+    auto interactionHandler = InteractionHandler(Core::InteractionHandler::ItemsHaveVariableSize);
+    interactionHandler.setMaxInteractionDistance(0);
     auto visualNodes = nodeManager.nodes<Shared::VisualNode>();
-    static constexpr int kNumIterations = 2;
-    for(int i = 0; i < kNumIterations; ++i){
-        collisionHanlder.solve(visualNodes);
+
+    static constexpr int kMaxNumIterations = 10;
+    bool solved = false;
+    int noOfSolves = 0;
+    while(!solved && noOfSolves < kMaxNumIterations){
+        solved = interactionHandler.solve(visualNodes);
+        ++noOfSolves;
     }
 
     UI::MainWindow w;
