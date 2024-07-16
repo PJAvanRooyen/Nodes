@@ -93,7 +93,7 @@ public:
             if(NodeType* concreteNode = dynamic_cast<NodeType*>(node.get())){
                 size_t nodeIndex = nodeIt - nodes.cbegin();
                 auto connections = connectionHandler.nodeConnections(nodeIndex);
-                auto wrapper = NodeWrapperType(std::ref(*concreteNode), connections);
+                auto wrapper = NodeWrapperType(nodeIndex, std::ref(*concreteNode), connections);
                 concreteNodes.push_back(std::move(wrapper));
             }
         }

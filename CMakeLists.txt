@@ -28,6 +28,7 @@ set(PROJECT_SOURCES
   GraphicsNode.cpp
   InteractionHandler.h
   InteractionHandler.cpp
+  Interactions.h
   
   Node.h
   Node.cpp

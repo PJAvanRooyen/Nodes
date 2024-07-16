@@ -23,7 +23,7 @@ public:
 
     QPointer<CentralWidgetView> view();
 
-    void addNode(QRectF rect, QString text = QString(), QString tooltip = QString());
+    void addNode(QVariant id, QRectF rect, QString text = QString(), QString tooltip = QString());
 
 private:
     std::unique_ptr<CentralWidgetView> mView;

@@ -103,11 +103,17 @@ public:
     using ConnectionsContainerType = std::pair<std::reference_wrapper<const std::bitset<MaxSize>>, std::reference_wrapper<const std::bitset<MaxSize>>>;
 
     ConnectedNodeWrapper(
+        size_t nodeIndex,
         std::reference_wrapper<NodeType> node,
         ConnectionsContainerType& connections)
         : Base(node)
+        , mNodeIndex(nodeIndex)
         , mConnections(connections)
     {
+    }
+
+    size_t index() const{
+        return mNodeIndex;
     }
 
     bool isConnected() const override
@@ -121,6 +127,7 @@ public:
     }
 
 private:
+    size_t mNodeIndex;
     ConnectionsContainerType mConnections;
 };
 }

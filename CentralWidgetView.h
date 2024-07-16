@@ -18,7 +18,7 @@ Q_SIGNALS:
 public:
     CentralWidgetView(QWidget *parent = nullptr);
 
-    void addNode(QRectF rect, QString text = QString(), QString tooltip = QString());
+    void addNode(QVariant id, QRectF rect, QString text = QString(), QString tooltip = QString());
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

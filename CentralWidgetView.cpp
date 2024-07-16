@@ -14,9 +14,9 @@ CentralWidgetView::CentralWidgetView(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
-void CentralWidgetView::addNode(QRectF rect, QString text, QString tooltip)
+void CentralWidgetView::addNode(QVariant id, QRectF rect, QString text, QString tooltip)
 {
-    auto* node = new GraphicsItem<QGraphicsEllipseItem, quint64>(1);
+    auto* node = new GraphicsItem<QGraphicsEllipseItem, QVariant>(id);
     node->setText(std::move(text));
     node->setToolTip(std::move(tooltip));
     node->setRect(rect);

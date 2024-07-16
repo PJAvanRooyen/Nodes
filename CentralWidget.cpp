@@ -24,9 +24,9 @@ QPointer<CentralWidgetView> CentralWidget::view()
     return mView.get();
 }
 
-void CentralWidget::addNode(QRectF rect, QString text, QString tooltip)
+void CentralWidget::addNode(QVariant id, QRectF rect, QString text, QString tooltip)
 {
-    mView->addNode(std::move(rect), std::move(text), std::move(tooltip));
+    mView->addNode(std::move(id), std::move(rect), std::move(text), std::move(tooltip));
 }
 
 }

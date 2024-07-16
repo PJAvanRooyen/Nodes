@@ -2,77 +2,13 @@
 #define InteractionHandler_H
 
 #include "StaticTypedefs.h"
+#include "Interactions.h"
 
 #include <QFlags>
-#include <QRectF>
 
 #include <set>
 
 namespace Core {
-
-template<class ItemType>
-using InteractFn = bool (*)(std::reference_wrapper<ItemType> item, std::vector<std::reference_wrapper<ItemType>>& neighbours);
-
-namespace InteractFnExample {
-template<class ItemType>
-bool collidingCircles(std::reference_wrapper<ItemType> item, std::vector<std::reference_wrapper<ItemType>>& neighbours){
-    auto collideOvals = [](const QRectF& itemRect, const QRectF& neighbourRect) -> QPointF {
-        QPointF offset = itemRect.center() - neighbourRect.center();
-        double distance = std::hypot(offset.x(), offset.y());
-
-        // TODO: improve this to be for ovals, not just circles.
-        double desiredDistance = (itemRect.width() + neighbourRect.width())/2.0;
-        double moveDistance = 0.0;
-        if(desiredDistance > distance){
-            moveDistance = desiredDistance - distance;
-        }
-        QPointF moveVector = offset * moveDistance/distance;
-
-        return moveVector;
-    };
-
-    bool isSolved = true;
-    QRectF rect = item.get().rect();
-
-    //! the movement it wants to make to avoid existing collisions.
-    QPointF displacementSum;
-    for(auto& neighbour : neighbours){
-        QRectF neighbourRect = neighbour.get().rect();
-        QPointF displacement = collideOvals(rect, neighbourRect);
-        displacementSum += displacement;
-    }
-
-    if(qFuzzyIsNull(displacementSum.x()) && qFuzzyIsNull(displacementSum.y())){
-        return isSolved;
-    }
-
-    //! the movement it wants to make afterwards to avoid new collisions.
-    QRectF movedRect = rect.translated(displacementSum);
-    QPointF postMoveDisplacementSum;
-    for(auto& neighbour : neighbours){
-        QRectF neighbourRect = neighbour.get().rect();
-        QPointF displacement = collideOvals(movedRect, neighbourRect);
-        postMoveDisplacementSum += displacement;
-    }
-
-    if(qFuzzyIsNull(postMoveDisplacementSum.x()) && qFuzzyIsNull(postMoveDisplacementSum.y())){
-        rect.translate(displacementSum);
-        isSolved = true;
-    }else{
-        // Move the rect to:
-        // - the movement it wants to make to avoid existing collisions.
-        // - half the movement it wants to make afterwards to avoid new collisions.
-        QPointF displacement = displacementSum + (postMoveDisplacementSum / 2.0);
-        rect.translate(displacement);
-
-        // This final result will result in some minor overlap,
-        // therfore the interaction has not yet been fully solved.
-        isSolved = false;
-    }
-    item.get().setRect(rect);
-    return isSolved;
-}
-}
 
 class InteractionHandler
 {
