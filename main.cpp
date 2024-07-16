@@ -72,15 +72,27 @@ int main(int argc, char *argv[])
     UI::CentralWidget widget;
     w.setCentralWidget(&widget);
 
-    // verify that the nodes in the manager got updated, by getting them again.
     // set their names to their index within the manager.
-    visualNodeWrappers = nodeManager.wrappedNodes<Shared::VisualNode>();
     for(auto& node : visualNodeWrappers){
         node.setText(QString::number(node.index()));
     }
 
+
+    // Add the nodes to the scene
+    std::vector<size_t> nodeIndices;
     for(auto& node : visualNodeWrappers){
-        widget.addNode(QVariant::fromValue<size_t>(node.index()), node.rect(), node.text(), QString("TopLeft: (x:%1, y:%2)").arg(node.rect().left()).arg(node.rect().top()));
+        nodeIndices.push_back(node.index());
+    }
+    for(auto& node : visualNodeWrappers){
+        auto nodeIndex = node.index();
+        widget.addNode(QVariant::fromValue<size_t>(nodeIndex), node.rect(), node.text(), QString("TopLeft: (x:%1, y:%2)").arg(node.rect().left()).arg(node.rect().top()));
+
+        // Add the node's connections to the scene
+        for(const auto index : nodeIndices){
+            if(node.isConnectedTo(index)){
+                widget.addConnection(QVariant::fromValue<size_t>(nodeIndex), QVariant::fromValue<size_t>(index));
+            }
+        }
     }
 
     QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
