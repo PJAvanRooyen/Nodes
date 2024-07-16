@@ -30,12 +30,12 @@ public:
     }
 
     template<class NodeType>
-    std::vector<NodeType*> nodes() const{
-        std::vector<NodeType*> concreteNodes;
+    std::vector<std::reference_wrapper<NodeType>> nodes() const{
+        std::vector<std::reference_wrapper<NodeType>> concreteNodes;
         concreteNodes.reserve(mNodes.size());
         for(const auto& node : mNodes){
             if(NodeType* concreteNode = dynamic_cast<NodeType*>(node.get())){
-                concreteNodes.push_back(concreteNode);
+                concreteNodes.push_back(std::ref(*concreteNode));
             }
         }
         return concreteNodes;
@@ -58,10 +58,50 @@ public:
         mConnectionHanlder.addNode(sourceIndex, targetIndex, connectionType);
     }
 
+protected:
+    const std::vector<std::unique_ptr<INode>>& _nodes() const{
+        return mNodes;
+    }
+
+    const ConnectionHandlerType& _connectionHandler() const{
+        return mConnectionHanlder;
+    }
+
 private:
     std::vector<std::unique_ptr<INode>> mNodes;
     ConnectionHandlerType mConnectionHanlder;
 };
+
+namespace InterconnectedMemory {
+template<int32_t MaxSize>
+class NodeManager : public Core::NodeManager<Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>
+{
+    using Base = Core::NodeManager<Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>;
+
+public:
+    template<class NodeType>
+    std::vector<Shared::InterconnectedMemory::ConnectedNodeWrapper<NodeType, MaxSize>> wrappedNodes() const{
+        using NodeWrapperType = Shared::InterconnectedMemory::ConnectedNodeWrapper<NodeType, MaxSize>;
+
+        std::vector<NodeWrapperType> concreteNodes;
+        const auto& nodes = Base::_nodes();
+        const auto& connectionHandler = Base::_connectionHandler();
+        concreteNodes.reserve(nodes.size());
+
+        for(auto nodeIt = nodes.cbegin(); nodeIt != nodes.cend(); ++nodeIt){
+            const auto& node = *nodeIt;
+            if(NodeType* concreteNode = dynamic_cast<NodeType*>(node.get())){
+                size_t nodeIndex = nodeIt - nodes.cbegin();
+                auto connections = connectionHandler.nodeConnections(nodeIndex);
+                auto wrapper = NodeWrapperType(std::ref(*concreteNode), connections);
+                concreteNodes.push_back(std::move(wrapper));
+            }
+        }
+
+        return concreteNodes;
+    }
+};
+}
 
 }
 

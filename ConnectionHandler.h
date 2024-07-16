@@ -39,7 +39,7 @@ public:
     using ParentChildConnections = ConnectionsContainerUnidirectional;
     using ChildParentConnections = ConnectionsContainerUnidirectional;
     using ConnectionsContainer = std::pair<ParentChildConnections, ChildParentConnections>;
-
+    using NodeConnectionsContainerRef = std::pair<std::reference_wrapper<const std::bitset<MaxSize>>, std::reference_wrapper<const std::bitset<MaxSize>>>;
 
     ConnectionHanlder()
         : IConnectionHanlder()
@@ -50,6 +50,14 @@ public:
     const ConnectionsContainer& connections() const
     {
         return mConnections;
+    }
+
+    NodeConnectionsContainerRef nodeConnections(std::size_t nodeIndex) const
+    {
+        assert(nodeIndex < MaxSize);
+        const std::bitset<MaxSize>& parentChildConnections = mConnections.first[nodeIndex];
+        const std::bitset<MaxSize>& childParentConnections = mConnections.second[nodeIndex];
+        return std::make_pair(std::ref(parentChildConnections), std::ref(childParentConnections));
     }
 
     void addNode(){

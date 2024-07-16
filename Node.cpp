@@ -45,5 +45,4 @@ VisualNode::size() const
     return mRect.size();
 }
 
-
 }
