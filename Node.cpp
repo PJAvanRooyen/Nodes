@@ -3,9 +3,22 @@
 namespace Shared{
 
 VisualNode::VisualNode()
-    : INode()
-    , mRect()
+    : VisualNode(QUuid::createUuid())
 {
+}
+
+VisualNode::VisualNode(QUuid id)
+    : INode()
+    , mId(std::move(id))
+    , mRect()
+    , mText()
+{
+}
+
+const QUuid&
+VisualNode::id() const
+{
+    return mId;
 }
 
 QRectF

@@ -10,14 +10,13 @@
 
 namespace Core{
 
-template<class ConnectionHandlerType,
-         std::enable_if_t<std::is_base_of_v<IConnectionHanlder, ConnectionHandlerType>>* = Q_NULLPTR>
+template<class NodeBaseType, class ConnectionHandlerType,
+         std::enable_if_t<std::is_base_of_v<Shared::INode, NodeBaseType> && std::is_base_of_v<IConnectionHanlder, ConnectionHandlerType>>* = Q_NULLPTR>
 class NodeManager
 {
 public:
     using ConnectionHandler = ConnectionHandlerType;
     using ConnectionType = typename ConnectionHandlerType::ConnectionType;
-    using INode = Shared::INode;
 
     NodeManager()
         : mNodes()
@@ -25,7 +24,7 @@ public:
     {
     }
 
-    const std::vector<std::unique_ptr<INode>>& nodes() const{
+    const std::vector<std::unique_ptr<NodeBaseType>>& nodes() const{
         return mNodes;
     }
 
@@ -41,65 +40,125 @@ public:
         return concreteNodes;
     }
 
-    template<class NodeType, std::enable_if_t<std::is_base_of_v<INode, NodeType>>* = Q_NULLPTR>
-    void addNode(std::unique_ptr<NodeType> node)
+    template<class NodeType, std::enable_if_t<std::is_base_of_v<NodeBaseType, NodeType>>* = Q_NULLPTR>
+    std::reference_wrapper<NodeType> addNode(std::unique_ptr<NodeType> node)
     {
         mNodes.push_back(std::move(node));
         mConnectionHanlder.addNode();
+        return static_cast<NodeType&>(*mNodes.back());
     }
 
-    template<class NodeType, std::enable_if_t<std::is_base_of_v<INode, NodeType>>* = Q_NULLPTR>
-    void addNode(size_t sourceIndex,
+    template<class NodeType, std::enable_if_t<std::is_base_of_v<NodeBaseType, NodeType>>* = Q_NULLPTR>
+    std::reference_wrapper<NodeType> addNode(size_t sourceIndex,
                  std::unique_ptr<NodeType> node,
                  ConnectionType connectionType)
     {
         size_t targetIndex = mNodes.size();
         mNodes.push_back(std::move(node));
         mConnectionHanlder.addNode(sourceIndex, targetIndex, connectionType);
+        return static_cast<NodeType&>(*mNodes.back());
+    }
+
+    void connect(size_t sourceIndex,
+                 size_t targetIndex,
+                 ConnectionType connectionType)
+    {
+        mConnectionHanlder.connect(sourceIndex, targetIndex, connectionType);
+    }
+
+    template<class NodeType, std::enable_if_t<std::is_base_of_v<NodeBaseType, NodeType>>* = Q_NULLPTR>
+    std::reference_wrapper<NodeType> nodeAt(size_t nodeIndex)
+    {
+        const auto& nodes = this->nodes();
+        assert(nodeIndex < nodes.size());
+        auto nodeIt = nodes.cbegin() += nodeIndex;
+        if(nodeIt != nodes.cend()){
+            const std::unique_ptr<NodeBaseType>& node = *nodeIt;
+            if(node){
+                return *node.get();
+            }
+        }
+        return std::reference_wrapper<NodeType>();
     }
 
 protected:
-    const std::vector<std::unique_ptr<INode>>& _nodes() const{
-        return mNodes;
-    }
-
     const ConnectionHandlerType& _connectionHandler() const{
         return mConnectionHanlder;
     }
 
 private:
-    std::vector<std::unique_ptr<INode>> mNodes;
+    std::vector<std::unique_ptr<NodeBaseType>> mNodes;
     ConnectionHandlerType mConnectionHanlder;
 };
 
 namespace InterconnectedMemory {
 template<int32_t MaxSize>
-class NodeManager : public Core::NodeManager<Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>
+class VisualNodeManager :  public Core::NodeManager<Shared::VisualNode, Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>
 {
-    using Base = Core::NodeManager<Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>;
+    using Base = Core::NodeManager<Shared::VisualNode, Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>;
+    using NodeWrapperType = Shared::InterconnectedMemory::ConnectedVisualNodeWrapper<MaxSize>;
 
 public:
-    template<class NodeType>
-    std::vector<Shared::InterconnectedMemory::ConnectedNodeWrapper<NodeType, MaxSize>> wrappedNodes() const{
-        using NodeWrapperType = Shared::InterconnectedMemory::ConnectedNodeWrapper<NodeType, MaxSize>;
+    NodeWrapperType wrappedNode(std::size_t nodeIndex) const{
+        assert(nodeIndex < MaxSize);
 
+        const auto& nodes = Base::nodes();
+        assert(nodeIndex < nodes.size());
+        const auto& connectionHandler = Base::_connectionHandler();
+
+        auto nodeIt = nodes.cbegin() += nodeIndex;
+        if(nodeIt != nodes.cend()){
+            const std::unique_ptr<Shared::VisualNode>& node = *nodeIt;
+            if(node){
+                size_t nodeIndex = nodeIt - nodes.cbegin();
+                auto connections = connectionHandler.nodeConnections(nodeIndex);
+                return NodeWrapperType(nodeIndex, std::ref(*node.get()), connections);
+            }
+        }
+
+        return NodeWrapperType();
+    }
+
+    std::vector<NodeWrapperType> wrappedNodes() const{
         std::vector<NodeWrapperType> concreteNodes;
-        const auto& nodes = Base::_nodes();
+        const auto& nodes = Base::nodes();
         const auto& connectionHandler = Base::_connectionHandler();
         concreteNodes.reserve(nodes.size());
 
         for(auto nodeIt = nodes.cbegin(); nodeIt != nodes.cend(); ++nodeIt){
-            const auto& node = *nodeIt;
-            if(NodeType* concreteNode = dynamic_cast<NodeType*>(node.get())){
+            const std::unique_ptr<Shared::VisualNode>& node = *nodeIt;
+            if(node){
                 size_t nodeIndex = nodeIt - nodes.cbegin();
                 auto connections = connectionHandler.nodeConnections(nodeIndex);
-                auto wrapper = NodeWrapperType(nodeIndex, std::ref(*concreteNode), connections);
+                auto wrapper = NodeWrapperType(nodeIndex, std::ref(*node.get()), connections);
                 concreteNodes.push_back(std::move(wrapper));
             }
         }
 
         return concreteNodes;
     }
+
+    std::optional<NodeWrapperType> wrappedNode(const QUuid& nodeId) const{
+        const auto& nodes = Base::nodes();
+        auto nodeIt = std::find_if(nodes.cbegin(), nodes.cend(), [&nodeId](const std::unique_ptr<Shared::VisualNode>& node){
+            return node->id() == nodeId;
+        });
+
+        const auto& connectionHandler = Base::_connectionHandler();
+
+        if(nodeIt != nodes.cend()){
+            const std::unique_ptr<Shared::VisualNode>& node = *nodeIt;
+            if(node){
+                size_t nodeIndex = nodeIt - nodes.cbegin();
+                auto connections = connectionHandler.nodeConnections(nodeIndex);
+                return NodeWrapperType(nodeIndex, std::ref(*node.get()), connections);
+            }
+        }
+
+        assert(false);
+        return std::nullopt;
+    }
+
 };
 }
 

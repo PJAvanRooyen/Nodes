@@ -25,6 +25,10 @@ class VisualNode : public INode
 public:
     VisualNode();
 
+    VisualNode(QUuid id);
+
+    const QUuid& id() const;
+
     QRectF rect() const;
 
     void setRect(QRectF rect);
@@ -38,6 +42,7 @@ public:
     QSizeF size() const;
 
 private:
+    QUuid mId;
     QRectF mRect;
     QString mText;
 };
@@ -51,42 +56,11 @@ public:
     {
     }
 
-    QRectF rect() const
-    {
-        return mNode.get().rect();
-    }
-
-    void setRect(QRectF rect)
-    {
-        mNode.get().setRect(std::move(rect));
-    }
-
-    const QString& text() const
-    {
-        return mNode.get().text();
-    }
-
-    void setText(QString text)
-    {
-        mNode.get().setText(std::move(text));
-    }
-
-    QPointF center() const
-    {
-        return mNode.get().center();
-    }
-
-    QSizeF size() const
-    {
-        return mNode.get().size();
-    }
-
     virtual bool isConnected() const = 0;
 
     virtual bool isConnectedTo(size_t id) const = 0;
 
-protected:
-    std::reference_wrapper<NodeType> _node() const{
+    std::reference_wrapper<NodeType> node() const{
         return mNode;
     }
 
@@ -129,6 +103,56 @@ public:
 private:
     size_t mNodeIndex;
     ConnectionsContainerType mConnections;
+};
+
+template<int32_t MaxSize>
+class ConnectedVisualNodeWrapper : public ConnectedNodeWrapper<Shared::VisualNode, MaxSize>
+{
+    using Base = ConnectedNodeWrapper<Shared::VisualNode, MaxSize>;
+
+public:
+    ConnectedVisualNodeWrapper(
+        size_t nodeIndex,
+        std::reference_wrapper<Shared::VisualNode> node,
+        typename Base::ConnectionsContainerType& connections)
+        : Base(nodeIndex, node, connections)
+    {
+    }
+
+    const QUuid& id() const
+    {
+        return Base::node().get().id();
+    }
+
+    QRectF rect() const
+    {
+        return Base::node().get().rect();
+    }
+
+    void setRect(QRectF rect)
+    {
+        Base::node().get().setRect(std::move(rect));
+    }
+
+    const QString& text() const
+    {
+        return Base::node().get().text();
+    }
+
+    void setText(QString text)
+    {
+        Base::node().get().setText(std::move(text));
+    }
+
+    QPointF center() const
+    {
+        return Base::node().get().center();
+    }
+
+    QSizeF size() const
+    {
+        return Base::node().get().size();
+    }
 };
 }
 

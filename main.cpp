@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     // and the exisiting nodes and connections can be moved to the new manager.
     static constexpr uint32_t kMaxNodeCount = 100;
 
-    using NodeManager = Core::InterconnectedMemory::NodeManager<kMaxNodeCount>;
+    using NodeManager = Core::InterconnectedMemory::VisualNodeManager<kMaxNodeCount>;
     NodeManager nodeManager;
     { // Overlapping
         auto node0 = std::make_unique<Shared::VisualNode>();
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     using InteractionHandler = Core::InteractionHandler;
     auto interactionHandler = InteractionHandler(Core::InteractionHandler::ItemsHaveVariableSize);
     interactionHandler.setMaxInteractionDistance(100);
-    auto visualNodeWrappers = nodeManager.wrappedNodes<Shared::VisualNode>();
+    auto visualNodeWrappers = nodeManager.wrappedNodes();
 
     static constexpr int kMaxNumIterations = 10;
     bool solved = false;
@@ -71,6 +71,49 @@ int main(int argc, char *argv[])
     UI::MainWindow w;
     UI::CentralWidget widget;
     w.setCentralWidget(&widget);
+    QObject::connect(&widget, &UI::CentralWidget::nodeAdd,
+                     [&widget, &nodeManager](QRectF rect, QString text, QString tooltip){
+        Q_UNUSED(tooltip);
+
+        auto node = std::make_unique<Shared::VisualNode>();
+        node->setRect(std::move(rect));
+        if(!text.isEmpty()){
+            node->setText(std::move(text));
+        }
+        auto nodeRef = nodeManager.addNode(std::move(node));
+        auto& addedNode = nodeRef.get();
+
+        const auto& nodeId = addedNode.id();
+        { //test
+            if(text.isEmpty()){
+                auto wrappedNode = nodeManager.wrappedNode(nodeId);
+                if(!wrappedNode.has_value()){
+                    return;
+                }
+                wrappedNode->setText(QString::number(wrappedNode->index()));
+            }
+        }
+
+        const auto nodeRect = addedNode.rect();
+        const auto& nodeText = addedNode.text();
+        widget.addNode(nodeId, nodeRect, nodeText, QString("TopLeft: (x:%1, y:%2)").arg(nodeRect.left()).arg(nodeRect.top()));
+    });
+    QObject::connect(&widget, &UI::CentralWidget::connectionAdd,
+         [&widget, &nodeManager](QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip){
+        Q_UNUSED(text);
+        Q_UNUSED(tooltip);
+        auto wrappedNode1 = nodeManager.wrappedNode(nodeId1);
+        if(!wrappedNode1.has_value()){
+            return;
+        }
+        auto wrappedNode2 = nodeManager.wrappedNode(nodeId2);
+        if(!wrappedNode2.has_value()){
+            return;
+        }
+
+        nodeManager.connect(wrappedNode1.value().index(), wrappedNode2.value().index(), decltype(nodeManager)::ConnectionType::ParentChild);
+        widget.addConnection(nodeId1, nodeId2);
+    });
 
     // set their names to their index within the manager.
     for(auto& node : visualNodeWrappers){
@@ -79,18 +122,14 @@ int main(int argc, char *argv[])
 
 
     // Add the nodes to the scene
-    std::vector<size_t> nodeIndices;
     for(auto& node : visualNodeWrappers){
-        nodeIndices.push_back(node.index());
-    }
-    for(auto& node : visualNodeWrappers){
-        auto nodeIndex = node.index();
-        widget.addNode(QVariant::fromValue<size_t>(nodeIndex), node.rect(), node.text(), QString("TopLeft: (x:%1, y:%2)").arg(node.rect().left()).arg(node.rect().top()));
+        auto nodeId = node.id();
+        widget.addNode(nodeId, node.rect(), node.text(), QString("TopLeft: (x:%1, y:%2)").arg(node.rect().left()).arg(node.rect().top()));
 
         // Add the node's connections to the scene
-        for(const auto index : nodeIndices){
-            if(node.isConnectedTo(index)){
-                widget.addConnection(QVariant::fromValue<size_t>(nodeIndex), QVariant::fromValue<size_t>(index));
+        for(auto& otherNode : visualNodeWrappers){
+            if(node.isConnectedTo(otherNode.index())){
+                widget.addConnection(nodeId, otherNode.id());
             }
         }
     }

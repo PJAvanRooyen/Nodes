@@ -7,6 +7,7 @@
 #include <QGraphicsView>
 #include <QGraphicsLineItem>
 #include <QGraphicsItem>
+#include <QUuid>
 
 namespace UI {
 
@@ -17,14 +18,14 @@ class CentralWidgetView : public QGraphicsView
 Q_SIGNALS:
     void nodeAdd(QRectF rect, QString text = QString(), QString tooltip = QString());
 
-    void connectionAdd(QVariant nodeId1, QVariant nodeId2, QString text = QString(), QString tooltip = QString());
+    void connectionAdd(QUuid nodeId1, QUuid nodeId2, QString text = QString(), QString tooltip = QString());
 
 public:
     CentralWidgetView(QWidget *parent = nullptr);
 
-    void addNode(QVariant id, QRectF rect, QString text = QString(), QString tooltip = QString());
+    void addNode(QUuid id, QRectF rect, QString text = QString(), QString tooltip = QString());
 
-    void addConnection(QVariant nodeId1, QVariant nodeId2,  QString text = QString(), QString tooltip = QString());
+    void addConnection(QUuid nodeId1, QUuid nodeId2,  QString text = QString(), QString tooltip = QString());
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
