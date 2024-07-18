@@ -16,10 +16,14 @@ class CentralWidget : public QWidget
 Q_SIGNALS:
     void nodeAdd(QRectF rect, QString text, QString tooltip);
 
+    void nodeRemove(QUuid nodeId);
+
     void connectionAdd(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip);
 
 private Q_SLOTS:
     void onNodeAdd(QRectF rect, QString text, QString tooltip);
+
+    void onNodeRemove(QUuid nodeId);
 
     void onConnectionAdd(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip);
 
@@ -28,7 +32,11 @@ public:
 
     QPointer<CentralWidgetView> view();
 
+    void reset();
+
     void addNode(QUuid id, QRectF rect, QString text = QString(), QString tooltip = QString());
+
+    void removeNode(const QUuid& id);
 
     void addConnection(QUuid nodeId1, QUuid nodeId2,  QString text = QString(), QString tooltip = QString());
 

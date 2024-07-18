@@ -59,6 +59,13 @@ public:
         return static_cast<NodeType&>(*mNodes.back());
     }
 
+    void removeNode(size_t nodeIndex)
+    {
+        assert(nodeIndex < mNodes.size());
+        mNodes.erase(mNodes.begin() + nodeIndex);
+        mConnectionHanlder.removeNode(nodeIndex);
+    }
+
     void connect(size_t sourceIndex,
                  size_t targetIndex,
                  ConnectionType connectionType)
@@ -99,6 +106,18 @@ class VisualNodeManager :  public Core::NodeManager<Shared::VisualNode, Core::In
     using NodeWrapperType = Shared::InterconnectedMemory::ConnectedVisualNodeWrapper<MaxSize>;
 
 public:
+    size_t nodeIndex(const QUuid& nodeId) const{
+        const auto& nodes = Base::nodes();
+        auto nodeIt = std::find_if(nodes.cbegin(), nodes.cend(), [&nodeId](const std::unique_ptr<Shared::VisualNode>& node){
+            return node->id() == nodeId;
+        });
+        if(nodeIt == nodes.cend()){
+            return -1;
+        }
+
+        return nodeIt - nodes.cbegin();
+    }
+
     NodeWrapperType wrappedNode(std::size_t nodeIndex) const{
         assert(nodeIndex < MaxSize);
 

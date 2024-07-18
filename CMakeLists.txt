@@ -24,6 +24,10 @@ set(PROJECT_SOURCES
   CentralWidgetView.cpp
   Scene.h
   Scene.cpp
+  GraphicsItem.h
+  GraphicsItem.cpp
+  GraphicsConnection.h
+  GraphicsConnection.cpp
   GraphicsNode.h
   GraphicsNode.cpp
   InteractionHandler.h

@@ -18,12 +18,18 @@ class CentralWidgetView : public QGraphicsView
 Q_SIGNALS:
     void nodeAdd(QRectF rect, QString text = QString(), QString tooltip = QString());
 
+    void nodeRemove(QUuid nodeId);
+
     void connectionAdd(QUuid nodeId1, QUuid nodeId2, QString text = QString(), QString tooltip = QString());
 
 public:
     CentralWidgetView(QWidget *parent = nullptr);
 
+    void reset();
+
     void addNode(QUuid id, QRectF rect, QString text = QString(), QString tooltip = QString());
+
+    bool removeNode(const QUuid& id);
 
     void addConnection(QUuid nodeId1, QUuid nodeId2,  QString text = QString(), QString tooltip = QString());
 
@@ -37,6 +43,8 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
     void resizeEvent(QResizeEvent *event) override;
+
+    void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
     QPointer<Scene> mScene;

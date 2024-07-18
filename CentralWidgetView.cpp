@@ -1,7 +1,10 @@
 #include "CentralWidgetView.h"
 #include "GraphicsNode.h"
+#include "GraphicsConnection.h"
 
 #include <QMouseEvent>
+#include <QMenu>
+#include <QGraphicsSceneContextMenuEvent>
 
 namespace UI{
 
@@ -16,9 +19,16 @@ CentralWidgetView::CentralWidgetView(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
+void CentralWidgetView::reset()
+{
+    mScene->clear();
+    mDragStartItem = nullptr;
+    mTempConnectionLine= nullptr;
+}
+
 void CentralWidgetView::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
 {
-    auto* node = new GraphicsItem<QGraphicsEllipseItem, QUuid>(id);
+    auto* node = new GraphicsNode(id);
     node->setText(std::move(text));
     node->setToolTip(std::move(tooltip));
     node->setRect(rect);
@@ -27,6 +37,30 @@ void CentralWidgetView::addNode(QUuid id, QRectF rect, QString text, QString too
     node->setBrush(Qt::red);
 
     mScene->addItem(node);
+}
+
+bool CentralWidgetView::removeNode(const QUuid &id)
+{
+    bool removed = false;
+    const auto items = mScene->items();
+    for(auto* item : items){
+        if(!item){
+            continue;
+        }
+        auto itemDataVar = item->data(GraphicsItemData::DataRole::ID);
+        if(itemDataVar.canConvert<QUuid>() && itemDataVar.value<QUuid>() == id){
+            mScene->removeItem(item);
+            removed = true;
+        } else if(itemDataVar.canConvert<std::pair<QUuid, QUuid>>()){
+            // Remove connections to/from the node
+            auto connectionId = itemDataVar.value<std::pair<QUuid, QUuid>>();
+            if(connectionId.first == id || connectionId.second == id){
+                mScene->removeItem(item);
+            }
+        }
+    }
+
+    return removed;
 }
 
 void CentralWidgetView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
@@ -68,7 +102,7 @@ void CentralWidgetView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text
         }
 
         if(startFound && endFound){
-            auto* line = new GraphicsItem<QGraphicsLineItem, QVariant>(id);
+            auto* line = new GraphicsConnection(id);
             line->setPen(QPen(Qt::red, 2));
             line->setLine(QLineF(startPos, endPos));
             mScene->addItem(line);
@@ -78,23 +112,24 @@ void CentralWidgetView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text
 
 void CentralWidgetView::mousePressEvent(QMouseEvent *event)
 {
-    auto startItems = mScene->items(mapToScene(event->pos()));
-    for(auto* startItem : startItems){
-        if (dynamic_cast<const GraphicsItem<QGraphicsLineItem, QVariant>*>(startItem)){
-            continue;
-        } else{
-            mDragStartItem = startItem;
-            if (mDragStartItem) {
-                const auto startItemId = mDragStartItem->data(GraphicsItemData::DataRole::ID).value<QUuid>();
-                QVariant id = QVariant::fromValue<QPair<QUuid, QUuid>>(qMakePair(startItemId, QUuid()));
-                mTempConnectionLine = new GraphicsItem<QGraphicsLineItem, QVariant>(id);
-                mTempConnectionLine->setPen(QPen(Qt::red, 2));
-                mScene->addItem(mTempConnectionLine);
-                break;
+    QGraphicsView::mousePressEvent(event);
+    if(event->button() == Qt::MouseButton::LeftButton){
+        auto startItems = mScene->items(mapToScene(event->pos()));
+        for(auto* startItem : startItems){
+            if(startItem->data(GraphicsItemData::DataRole::Type).value<ItemType>() == ItemType::Node){
+                mDragStartItem = startItem;
+                if (mDragStartItem) {
+                    const auto startItemId = mDragStartItem->data(GraphicsItemData::DataRole::ID).value<QUuid>();
+                    QVariant id = QVariant::fromValue<QPair<QUuid, QUuid>>(qMakePair(startItemId, QUuid()));
+                    mTempConnectionLine = new GraphicsConnection(id);
+                    mTempConnectionLine->setPen(QPen(Qt::red, 2));
+                    mTempConnectionLine->setLine(QLineF(mDragStartItem->boundingRect().center(), event->pos()));
+                    mScene->addItem(mTempConnectionLine);
+                    break;
+                }
             }
         }
     }
-    QGraphicsView::mousePressEvent(event);
 }
 
 void CentralWidgetView::mouseMoveEvent(QMouseEvent *event)
@@ -107,34 +142,35 @@ void CentralWidgetView::mouseMoveEvent(QMouseEvent *event)
 
 void CentralWidgetView::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (mTempConnectionLine) {
-        auto endItems = mScene->items(mapToScene(event->pos()));
-        bool endedOnItem = false;
-        for(const auto* endItem : endItems){
-            if (dynamic_cast<const GraphicsItem<QGraphicsLineItem, QVariant>*>(endItem)){
-                continue;
-            } else{
-                if (mDragStartItem && endItem && endItem != mDragStartItem) {
-                    const auto startItemId = mDragStartItem->data(GraphicsItemData::DataRole::ID).value<QUuid>();
-                    const auto endItemId = endItem->data(GraphicsItemData::DataRole::ID).value<QUuid>();
-                    QVariant id = QVariant::fromValue<QPair<QUuid, QUuid>>(qMakePair(startItemId, endItemId));
-                    mTempConnectionLine->setData(GraphicsItemData::DataRole::ID, id);
-                    mTempConnectionLine->setLine(QLineF(mDragStartItem->boundingRect().center(), endItem->boundingRect().center()));
-                    endedOnItem = true;
+    QGraphicsView::mouseReleaseEvent(event);
 
-                    Q_EMIT connectionAdd(startItemId, endItemId);
-                    break;
+    if(event->button() == Qt::MouseButton::LeftButton){
+        if (mTempConnectionLine) {
+            auto endItems = mScene->items(mapToScene(event->pos()));
+            bool endedOnItem = false;
+            for(const auto* endItem : endItems){
+                if(endItem->data(GraphicsItemData::DataRole::Type).value<ItemType>() == ItemType::Node){
+                    if (mDragStartItem && endItem && endItem != mDragStartItem) {
+                        const auto startItemId = mDragStartItem->data(GraphicsItemData::DataRole::ID).value<QUuid>();
+                        const auto endItemId = endItem->data(GraphicsItemData::DataRole::ID).value<QUuid>();
+                        QVariant id = QVariant::fromValue<QPair<QUuid, QUuid>>(qMakePair(startItemId, endItemId));
+                        mTempConnectionLine->setData(GraphicsItemData::DataRole::ID, id);
+                        mTempConnectionLine->setLine(QLineF(mDragStartItem->boundingRect().center(), endItem->boundingRect().center()));
+                        endedOnItem = true;
+
+                        Q_EMIT connectionAdd(startItemId, endItemId);
+                        break;
+                    }
                 }
             }
+            if(!endedOnItem){
+                mScene->removeItem(mTempConnectionLine);
+                delete mTempConnectionLine;
+            }
+            mTempConnectionLine = nullptr;
+            mDragStartItem = nullptr;
         }
-        if(!endedOnItem){
-            mScene->removeItem(mTempConnectionLine);
-            delete mTempConnectionLine;
-        }
-        mTempConnectionLine = nullptr;
-        mDragStartItem = nullptr;
     }
-    QGraphicsView::mouseReleaseEvent(event);
 }
 
 void CentralWidgetView::mouseDoubleClickEvent(QMouseEvent *event)
@@ -155,6 +191,25 @@ void CentralWidgetView::resizeEvent(QResizeEvent *event)
     QGraphicsView::resizeEvent(event);
     mScene->setSceneRect(rect());
 }
+
+void CentralWidgetView::contextMenuEvent(QContextMenuEvent *event)
+{
+    auto scenePos = mapToScene(event->pos());
+    auto items = scene()->items(scenePos);
+    for(auto* item : items){
+        auto idVar = item->data(GraphicsItemData::DataRole::ID);
+        if (item->data(GraphicsItemData::DataRole::Type).value<ItemType>() == ItemType::Node &&  idVar.canConvert<QUuid>()){
+            QMenu menu;
+            QAction *deleteAction = menu.addAction("Delete Node");
+            QAction *selectedAction = menu.exec(event->pos());
+            if (selectedAction == deleteAction) {
+                Q_EMIT nodeRemove(idVar.value<QUuid>());
+            }
+        }
+    }
+}
+
+
 
 
 }
