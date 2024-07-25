@@ -1,4 +1,6 @@
 #include "CentralWidget.h"
+#include "Shared/EventSystem/Communicator.h"
+#include "Shared/EventSystem/Events/EvNode.h"
 
 #include <QApplication>
 #include <QScreen>
@@ -9,8 +11,8 @@ namespace UI{
 void
 CentralWidget::onNodeAdd(QRectF rect, QString text, QString tooltip)
 {
-    // TODO: send event to add node instead.
-    Q_EMIT nodeAdd(std::move(rect), std::move(text), std::move(tooltip));
+    auto req = Shared::EventSystem::EvNodeAddReq(std::move(rect), std::move(text), std::move(tooltip));
+    Shared::EventSystem::Communicator::instance().postEvent(req);
 }
 
 void CentralWidget::onNodeRemove(QUuid nodeId)
@@ -29,6 +31,10 @@ CentralWidget::CentralWidget(QWidget *parent)
     : QWidget(parent)
     , mView(new CentralWidgetView(this))
 {
+    auto &communicator = Shared::EventSystem::Communicator::instance();
+    communicator.connect(this,
+                         {Shared::EventSystem::EvNodeAddResp::staticType()});
+
     connect(mView.get(), &CentralWidgetView::nodeAdd, this, &CentralWidget::onNodeAdd);
     connect(mView.get(), &CentralWidgetView::nodeRemove, this, &CentralWidget::onNodeRemove);
     connect(mView.get(), &CentralWidgetView::connectionAdd, this, &CentralWidget::onConnectionAdd);
@@ -57,6 +63,18 @@ void CentralWidget::removeNode(const QUuid &id)
 void CentralWidget::addConnection(QUuid nodeId1, QUuid nodeId2,  QString text, QString tooltip)
 {
     mView->addConnection(std::move(nodeId1), std::move(nodeId2), std::move(text), std::move(tooltip));
+}
+
+void CentralWidget::customEvent(QEvent *event)
+{
+    Q_ASSERT(event);
+
+    const auto eventType = event->type();
+    if (eventType == Shared::EventSystem::EvNodeAddResp::staticType()) {
+        const auto& ev = static_cast<Shared::EventSystem::EvNodeAddResp&>(*event);
+
+        addNode(ev.nodeId, ev.rect, ev.text, ev.tooltip);
+    }
 }
 
 }

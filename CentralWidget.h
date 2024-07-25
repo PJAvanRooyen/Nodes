@@ -40,6 +40,9 @@ public:
 
     void addConnection(QUuid nodeId1, QUuid nodeId2,  QString text = QString(), QString tooltip = QString());
 
+protected:
+    void customEvent(QEvent* event) override;
+
 private:
     std::unique_ptr<CentralWidgetView> mView;
 };

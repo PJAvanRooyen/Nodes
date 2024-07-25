@@ -40,6 +40,11 @@ set(PROJECT_SOURCES
   ConnectionHandler.cpp
   NodeManager.h
   NodeManager.cpp
+  
+  NodeStore.h
+  NodeStore.cpp
+  InteractionModule.h
+  InteractionModule.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -65,7 +70,9 @@ else()
     endif()
 endif()
 
-target_link_libraries(Nodes PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+add_subdirectory( Shared )
+
+target_link_libraries(Nodes PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Shared EventSystem)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
