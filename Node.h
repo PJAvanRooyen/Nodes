@@ -4,7 +4,6 @@
 #include <QUuid>
 #include <QRectF>
 
-#include <memory>
 #include <bitset>
 
 namespace Shared{

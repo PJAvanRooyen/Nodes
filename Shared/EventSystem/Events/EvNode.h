@@ -37,6 +37,24 @@ struct EvNodeAddResp : public EventSystem::Event<EvNodeAddResp>
     const QString tooltip;
 };
 
+struct EvNodeRemoveReq : public EventSystem::Event<EvNodeRemoveReq>
+{
+    EvNodeRemoveReq(QUuid nodeId)
+        : Event<EvNodeRemoveReq>()
+        , nodeId(std::move(nodeId)){}
+
+    const QUuid nodeId;
+};
+
+struct EvNodeRemoveResp : public EventSystem::Event<EvNodeRemoveResp>
+{
+    EvNodeRemoveResp(QUuid nodeId)
+        : Event<EvNodeRemoveResp>()
+        , nodeId(std::move(nodeId)){}
+
+    const QUuid nodeId;
+};
+
 }
 
 #endif // EvNode_H

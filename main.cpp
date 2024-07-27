@@ -8,43 +8,14 @@
 #include <QScreen>
 #include <QThread>
 
-// #define ManagerDebug
-
-int main(int argc, char *argv[])
-{
-    QThread coreThread = QThread();
-    // COMMUNICATOR
-    //=========================================================================
-    auto &comm = Shared::EventSystem::Communicator::instance();
-    comm.moveToThread(&coreThread);
-
-    // CORE
-    //=========================================================================
-    using NodeStore = Core::NodeStore;
-    NodeStore nodeStore;
-    nodeStore.moveToThread(&coreThread);
-
-    using InteractionModule = Core::InteractionModule;
-    auto interactionModule = InteractionModule();
-    interactionModule.moveToThread(&coreThread);
-
-    // auto visualNodeWrappers = nodeManager.wrappedNodes();
-
-    // static constexpr int kMaxNumIterations = 10;
-    // bool solved = false;
-    // int noOfSolves = 0;
-    // while(!solved && noOfSolves < kMaxNumIterations){
-    //     solved = interactionHandler.solve(visualNodeWrappers, &Core::InteractFnExample::mindmapInteractions);
-    //     ++noOfSolves;
-    // }
-
-    // UI
-    //=========================================================================
-    QApplication a(argc, argv);
-
-    UI::MainWindow w;
-    UI::CentralWidget widget;
-    w.setCentralWidget(&widget);
+// auto visualNodeWrappers = nodeManager.wrappedNodes();
+// static constexpr int kMaxNumIterations = 10;
+// bool solved = false;
+// int noOfSolves = 0;
+// while(!solved && noOfSolves < kMaxNumIterations){
+//     solved = interactionHandler.solve(visualNodeWrappers, &Core::InteractFnExample::mindmapInteractions);
+//     ++noOfSolves;
+// }
 
 //     { // test
 //         auto redraw = [&nodeManager, &widget](){
@@ -71,41 +42,33 @@ int main(int argc, char *argv[])
 //                 }
 //             }
 //         };
-
-//         QObject::connect(&widget, &UI::CentralWidget::connectionAdd,
-//              [&widget, &nodeManager, redraw](QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip){
-//             Q_UNUSED(text);
-//             Q_UNUSED(tooltip);
-//             auto wrappedNode1 = nodeManager.wrappedNode(nodeId1);
-//             if(!wrappedNode1.has_value()){
-//                 return;
-//             }
-//             auto wrappedNode2 = nodeManager.wrappedNode(nodeId2);
-//             if(!wrappedNode2.has_value()){
-//                 return;
-//             }
-
-//             nodeManager.connect(wrappedNode1.value().index(), wrappedNode2.value().index(), decltype(nodeManager)::ConnectionType::ParentChild);
-//             widget.addConnection(nodeId1, nodeId2);
-
-// #ifdef ManagerDebug
-//             redraw();
-// #endif
-//         });
-//         QObject::connect(&widget, &UI::CentralWidget::nodeRemove,
-//                          [&widget, &nodeManager, redraw](QUuid nodeId){
-//             if(size_t nodeIndex = nodeManager.nodeIndex(nodeId); nodeIndex != -1){
-//                 nodeManager.removeNode(nodeIndex);
-//                 widget.removeNode(nodeId);
-
-// #ifdef ManagerDebug
-//                 redraw();
-// #endif
-//             }
-//         });
-
-//         redraw();
 //     }
+
+int main(int argc, char *argv[])
+{
+    QThread coreThread = QThread();
+    // COMMUNICATOR
+    //=========================================================================
+    auto &comm = Shared::EventSystem::Communicator::instance();
+    comm.moveToThread(&coreThread);
+
+    // CORE
+    //=========================================================================
+    using NodeStore = Core::NodeStore;
+    NodeStore nodeStore;
+    nodeStore.moveToThread(&coreThread);
+
+    using InteractionModule = Core::InteractionModule;
+    auto interactionModule = InteractionModule();
+    interactionModule.moveToThread(&coreThread);
+
+    // UI
+    //=========================================================================
+    QApplication a(argc, argv);
+
+    UI::MainWindow w;
+    UI::CentralWidget widget;
+    w.setCentralWidget(&widget);
 
     QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     w.setGeometry(screenGeometry);
@@ -113,6 +76,7 @@ int main(int argc, char *argv[])
     w.show();
 
     coreThread.start();
+    nodeStore.init();
     auto res =  a.exec();
     coreThread.quit();
     return res;

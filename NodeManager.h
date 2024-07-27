@@ -73,19 +73,19 @@ public:
         mConnectionHanlder.connect(sourceIndex, targetIndex, connectionType);
     }
 
-    template<class NodeType, std::enable_if_t<std::is_base_of_v<NodeBaseType, NodeType>>* = Q_NULLPTR>
-    std::reference_wrapper<NodeType> nodeAt(size_t nodeIndex)
+    template<class NodeType = NodeBaseType, std::enable_if_t<std::is_base_of_v<NodeBaseType, NodeType>>* = Q_NULLPTR>
+    NodeType* nodeAt(size_t nodeIndex)
     {
         const auto& nodes = this->nodes();
         assert(nodeIndex < nodes.size());
         auto nodeIt = nodes.cbegin() += nodeIndex;
         if(nodeIt != nodes.cend()){
-            const std::unique_ptr<NodeBaseType>& node = *nodeIt;
+            const auto& node = *nodeIt;
             if(node){
-                return *node.get();
+                return node.get();
             }
         }
-        return std::reference_wrapper<NodeType>();
+        return Q_NULLPTR;
     }
 
 protected:

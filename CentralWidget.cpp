@@ -1,6 +1,8 @@
 #include "CentralWidget.h"
 #include "Shared/EventSystem/Communicator.h"
 #include "Shared/EventSystem/Events/EvNode.h"
+#include "Shared/EventSystem/Events/EvConnection.h"
+#include "Shared/EventSystem/Events/EvInteraction.h"
 
 #include <QApplication>
 #include <QScreen>
@@ -17,8 +19,8 @@ CentralWidget::onNodeAdd(QRectF rect, QString text, QString tooltip)
 
 void CentralWidget::onNodeRemove(QUuid nodeId)
 {
-    // TODO: send event to remove node instead.
-    Q_EMIT nodeRemove(std::move(nodeId));
+    auto req = Shared::EventSystem::EvNodeRemoveReq(nodeId);
+    Shared::EventSystem::Communicator::instance().postEvent(req);
 }
 
 void CentralWidget::onConnectionAdd(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
@@ -33,7 +35,10 @@ CentralWidget::CentralWidget(QWidget *parent)
 {
     auto &communicator = Shared::EventSystem::Communicator::instance();
     communicator.connect(this,
-                         {Shared::EventSystem::EvNodeAddResp::staticType()});
+                         {Shared::EventSystem::EvNodeAddResp::staticType(),
+                          Shared::EventSystem::EvNodeRemoveResp::staticType(),
+                          Shared::EventSystem::EvConnectionAddResp::staticType(),
+                          });
 
     connect(mView.get(), &CentralWidgetView::nodeAdd, this, &CentralWidget::onNodeAdd);
     connect(mView.get(), &CentralWidgetView::nodeRemove, this, &CentralWidget::onNodeRemove);
@@ -68,12 +73,16 @@ void CentralWidget::addConnection(QUuid nodeId1, QUuid nodeId2,  QString text, Q
 void CentralWidget::customEvent(QEvent *event)
 {
     Q_ASSERT(event);
-
     const auto eventType = event->type();
     if (eventType == Shared::EventSystem::EvNodeAddResp::staticType()) {
         const auto& ev = static_cast<Shared::EventSystem::EvNodeAddResp&>(*event);
-
         addNode(ev.nodeId, ev.rect, ev.text, ev.tooltip);
+    } else if (eventType == Shared::EventSystem::EvNodeRemoveResp::staticType()) {
+        const auto& ev = static_cast<Shared::EventSystem::EvNodeRemoveResp&>(*event);
+        removeNode(ev.nodeId);
+    } else if (eventType == Shared::EventSystem::EvConnectionAddResp::staticType()) {
+        const auto& ev = static_cast<Shared::EventSystem::EvConnectionAddResp&>(*event);
+        addConnection(ev.node1Id, ev.node2Id);
     }
 }
 
