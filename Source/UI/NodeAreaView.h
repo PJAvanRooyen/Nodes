@@ -1,5 +1,5 @@
-#ifndef CentralWidgetView_H
-#define CentralWidgetView_H
+#ifndef NodeAreaView_H
+#define NodeAreaView_H
 
 #include "Scene.h"
 
@@ -11,7 +11,7 @@
 
 namespace UI {
 
-class CentralWidgetView : public QGraphicsView
+class NodeAreaView : public QGraphicsView
 {
     Q_OBJECT
 
@@ -23,7 +23,7 @@ Q_SIGNALS:
     void connectionAdd(QUuid nodeId1, QUuid nodeId2, QString text = QString(), QString tooltip = QString());
 
 public:
-    CentralWidgetView(QWidget *parent = nullptr);
+    NodeAreaView(QWidget *parent = nullptr);
 
     void reset();
 
@@ -54,4 +54,4 @@ private:
 };
 
 }
-#endif // CentralWidgetView_H
+#endif // NodeAreaView_H

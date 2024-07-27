@@ -11,6 +11,4 @@ add_library( ${TARGET_NAME} )
 
 target_include_directories( ${TARGET_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/EventSystem
-    ${CMAKE_CURRENT_SOURCE_DIR}/Node
 )

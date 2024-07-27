@@ -1,4 +1,4 @@
-#include "NodeStore.h"
+#include "NodeManager.h"
 #include "EventSystem/Communicator.h"
 #include "EventSystem/Events/EvNode.h"
 #include "EventSystem/Events/EvConnection.h"
@@ -11,8 +11,9 @@ namespace Core{
 // and the exisiting nodes and connections can be moved to the new manager.
 static constexpr uint32_t kMaxNodeCount = 100;
 
-NodeStore::NodeStore()
-    : mNodeManager()
+NodeManager::NodeManager()
+    : mNodeHandler()
+    , mInteractionHandler()
 {
     auto &communicator = Shared::EventSystem::Communicator::instance();
     communicator.connect(this,
@@ -22,35 +23,44 @@ NodeStore::NodeStore()
                           });
 }
 
-void NodeStore::init()
+void NodeManager::init()
 {
     { // Overlapping
         addNode(QRectF(QPointF(100,100), QSizeF(20,20)));
         addNode(QRectF(QPointF(90,90), QSizeF(20,20)));
-        connect(mNodeManager.nodes().front()->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodes().front()->id(), mNodeHandler.nodes().back()->id());
         addNode(QRectF(QPointF(110,90), QSizeF(20,20)));
-        connect(mNodeManager.nodes().front()->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodes().front()->id(), mNodeHandler.nodes().back()->id());
         addNode(QRectF(QPointF(90,110), QSizeF(20,20)));
-        connect(mNodeManager.nodes().front()->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodes().front()->id(), mNodeHandler.nodes().back()->id());
         addNode(QRectF(QPointF(110,110), QSizeF(20,20)));
-        connect(mNodeManager.nodes().front()->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodes().front()->id(), mNodeHandler.nodes().back()->id());
     }
 
     { // Touching
         addNode(QRectF(QPointF(500,500), QSizeF(20,20)));
         addNode(QRectF(QPointF(485.857864376,485.857864376), QSizeF(20,20)));
-        connect(mNodeManager.nodeAt(5)->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodeAt(5)->id(), mNodeHandler.nodes().back()->id());
         addNode(QRectF(QPointF(514.14213562373095,485.857864376), QSizeF(20,20)));
-        connect(mNodeManager.nodeAt(5)->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodeAt(5)->id(), mNodeHandler.nodes().back()->id());
         addNode(QRectF(QPointF(485.857864376,514.14213562373095), QSizeF(20,20)));
-        connect(mNodeManager.nodeAt(5)->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodeAt(5)->id(), mNodeHandler.nodes().back()->id());
         addNode(QRectF(QPointF(514.14213562373095,514.14213562373095), QSizeF(20,20)));
-        connect(mNodeManager.nodeAt(5)->id(), mNodeManager.nodes().back()->id());
+        connect(mNodeHandler.nodeAt(5)->id(), mNodeHandler.nodes().back()->id());
+    }
+
+    auto visualNodeWrappers = mNodeHandler.wrappedNodes();
+    static constexpr int kMaxNumIterations = 10;
+    bool solved = false;
+    int noOfSolves = 0;
+    while(!solved && noOfSolves < kMaxNumIterations){
+        solved = mInteractionHandler.solve(visualNodeWrappers, &Core::InteractFnExample::mindmapInteractions);
+        ++noOfSolves;
     }
 }
 
 void
-NodeStore::customEvent(QEvent* event) {
+NodeManager::customEvent(QEvent* event) {
     Q_ASSERT(event);
 
     const auto eventType = event->type();
@@ -66,20 +76,20 @@ NodeStore::customEvent(QEvent* event) {
     }
 }
 
-void NodeStore::addNode(QRectF rect, QString text, QString tooltip)
+void NodeManager::addNode(QRectF rect, QString text, QString tooltip)
 {
     auto node = std::make_unique<Shared::VisualNode>();
     node->setRect(std::move(rect));
     if(!text.isEmpty()){
         node->setText(std::move(text));
     }
-    auto nodeRef = mNodeManager.addNode(std::move(node));
+    auto nodeRef = mNodeHandler.addNode(std::move(node));
     auto& addedNode = nodeRef.get();
 
     const auto& nodeId = addedNode.id();
     { //test
         if(text.isEmpty()){
-            auto wrappedNode = mNodeManager.wrappedNode(nodeId);
+            auto wrappedNode = mNodeHandler.wrappedNode(nodeId);
             if(!wrappedNode.has_value()){
                 return;
             }
@@ -98,33 +108,33 @@ void NodeStore::addNode(QRectF rect, QString text, QString tooltip)
     Shared::EventSystem::Communicator::instance().postEvent(resp);
 }
 
-void NodeStore::removeNode(QUuid nodeId)
+void NodeManager::removeNode(QUuid nodeId)
 {
-    if(size_t nodeIndex = mNodeManager.nodeIndex(nodeId); nodeIndex != -1){
-       mNodeManager.removeNode(nodeIndex);
+    if(size_t nodeIndex = mNodeHandler.nodeIndex(nodeId); nodeIndex != -1){
+       mNodeHandler.removeNode(nodeIndex);
     }
 
     auto resp = Shared::EventSystem::EvNodeRemoveResp(nodeId);
     Shared::EventSystem::Communicator::instance().postEvent(resp);
 }
 
-void NodeStore::connect(QUuid node1Id, QUuid node2Id, QString text, QString tooltip)
+void NodeManager::connect(QUuid node1Id, QUuid node2Id, QString text, QString tooltip)
 {
     Q_UNUSED(text);
     Q_UNUSED(tooltip);
-    auto wrappedNode1 = mNodeManager.wrappedNode(node1Id);
+    auto wrappedNode1 = mNodeHandler.wrappedNode(node1Id);
     if(!wrappedNode1.has_value()){
         return;
     }
-    auto wrappedNode2 = mNodeManager.wrappedNode(node2Id);
+    auto wrappedNode2 = mNodeHandler.wrappedNode(node2Id);
     if(!wrappedNode2.has_value()){
         return;
     }
 
-    mNodeManager.connect(
+    mNodeHandler.connect(
         wrappedNode1.value().index(),
         wrappedNode2.value().index(),
-        decltype(mNodeManager)::ConnectionType::ParentChild);
+        decltype(mNodeHandler)::ConnectionType::ParentChild);
 
     auto resp = Shared::EventSystem::EvConnectionAddResp(node1Id, node2Id);
     Shared::EventSystem::Communicator::instance().postEvent(resp);

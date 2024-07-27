@@ -1,21 +1,11 @@
-#include "mainwindow.h"
-#include "CentralWidget.h"
-#include "Core/NodeStore/NodeStore.h"
-#include "Core/InteractionModule/InteractionModule.h"
+#include "UI/mainwindow.h"
+#include "UI/NodeArea.h"
+#include "Core/NodeManager/NodeManager.h"
 #include "Shared/EventSystem/Communicator.h"
 
 #include <QApplication>
 #include <QScreen>
 #include <QThread>
-
-// auto visualNodeWrappers = nodeManager.wrappedNodes();
-// static constexpr int kMaxNumIterations = 10;
-// bool solved = false;
-// int noOfSolves = 0;
-// while(!solved && noOfSolves < kMaxNumIterations){
-//     solved = interactionHandler.solve(visualNodeWrappers, &Core::InteractFnExample::mindmapInteractions);
-//     ++noOfSolves;
-// }
 
 //     { // test
 //         auto redraw = [&nodeManager, &widget](){
@@ -54,20 +44,16 @@ int main(int argc, char *argv[])
 
     // CORE
     //=========================================================================
-    using NodeStore = Core::NodeStore;
-    NodeStore nodeStore;
-    nodeStore.moveToThread(&coreThread);
-
-    using InteractionModule = Core::InteractionModule;
-    auto interactionModule = InteractionModule();
-    interactionModule.moveToThread(&coreThread);
+    using NodeManager = Core::NodeManager;
+    NodeManager nodeManager;
+    nodeManager.moveToThread(&coreThread);
 
     // UI
     //=========================================================================
     QApplication a(argc, argv);
 
     UI::MainWindow w;
-    UI::CentralWidget widget;
+    UI::NodeArea widget;
     w.setCentralWidget(&widget);
 
     QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
@@ -76,7 +62,7 @@ int main(int argc, char *argv[])
     w.show();
 
     coreThread.start();
-    nodeStore.init();
+    nodeManager.init();
     auto res =  a.exec();
     coreThread.quit();
     return res;

@@ -1,7 +1,7 @@
-#ifndef CentralWidget_H
-#define CentralWidget_H
+#ifndef NodeArea_H
+#define NodeArea_H
 
-#include "CentralWidgetView.h"
+#include "NodeAreaView.h"
 
 #include <QPointer>
 #include <QWidget>
@@ -9,7 +9,7 @@
 
 namespace UI {
 
-class CentralWidget : public QWidget
+class NodeArea : public QWidget
 {
     Q_OBJECT
 
@@ -28,9 +28,9 @@ private Q_SLOTS:
     void onConnectionAdd(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip);
 
 public:
-    CentralWidget(QWidget *parent = nullptr);
+    NodeArea(QWidget *parent = nullptr);
 
-    QPointer<CentralWidgetView> view();
+    QPointer<NodeAreaView> view();
 
     void reset();
 
@@ -44,8 +44,8 @@ protected:
     void customEvent(QEvent* event) override;
 
 private:
-    std::unique_ptr<CentralWidgetView> mView;
+    std::unique_ptr<NodeAreaView> mView;
 };
 
 }
-#endif // CentralWidget_H
+#endif // NodeArea_H

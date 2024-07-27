@@ -39,13 +39,11 @@ else()
     endif()
 endif()
 
-add_subdirectory( Shared )
-add_subdirectory( Core )
-add_subdirectory( UI )
+add_subdirectory( Source )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Shared, ${CMAKE_CURRENT_SOURCE_DIR}/Core, ${CMAKE_CURRENT_SOURCE_DIR}/UI)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Source)
 
-target_link_libraries(Nodes PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Shared Core UI EventSystem NodeStore InteractionModule)
+target_link_libraries(Nodes PRIVATE UI EventSystem NodeManager)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

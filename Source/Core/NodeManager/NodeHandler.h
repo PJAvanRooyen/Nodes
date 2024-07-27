@@ -1,5 +1,5 @@
-#ifndef NodeManager_H
-#define NodeManager_H
+#ifndef NodeHandler_H
+#define NodeHandler_H
 
 #include "ConnectionHandler.h"
 #include "Node/Node.h"
@@ -12,13 +12,13 @@ namespace Core{
 
 template<class NodeBaseType, class ConnectionHandlerType,
          std::enable_if_t<std::is_base_of_v<Shared::INode, NodeBaseType> && std::is_base_of_v<IConnectionHanlder, ConnectionHandlerType>>* = Q_NULLPTR>
-class NodeManager
+class NodeHandler
 {
 public:
     using ConnectionHandler = ConnectionHandlerType;
     using ConnectionType = typename ConnectionHandlerType::ConnectionType;
 
-    NodeManager()
+    NodeHandler()
         : mNodes()
         , mConnectionHanlder()
     {
@@ -100,9 +100,9 @@ private:
 
 namespace InterconnectedMemory {
 template<int32_t MaxSize>
-class VisualNodeManager :  public Core::NodeManager<Shared::VisualNode, Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>
+class VisualNodeManager :  public Core::NodeHandler<Shared::VisualNode, Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>
 {
-    using Base = Core::NodeManager<Shared::VisualNode, Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>;
+    using Base = Core::NodeHandler<Shared::VisualNode, Core::InterconnectedMemory::ConnectionHanlder<MaxSize>>;
     using NodeWrapperType = Shared::InterconnectedMemory::ConnectedVisualNodeWrapper<MaxSize>;
 
 public:
@@ -183,4 +183,4 @@ public:
 
 }
 
-#endif // NodeManager_H
+#endif // NodeHandler_H

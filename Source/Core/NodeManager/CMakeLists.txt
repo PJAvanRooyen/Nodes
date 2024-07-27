@@ -1,15 +1,22 @@
-set( TARGET_NAME NodeStore )
+set( TARGET_NAME NodeManager )
 
 set( HEADERS
-  NodeStore.h
   NodeManager.h
+  NodeHandler.h
+  
   ConnectionHandler.h
+  
+  Interactions.h
+  InteractionHandler.h
 )
 
 set( SOURCES
-  NodeStore.cpp
   NodeManager.cpp
+  NodeHandler.cpp
+  
   ConnectionHandler.cpp
+  
+  InteractionHandler.cpp
 )
 
 add_library( ${TARGET_NAME} STATIC ${SOURCES} ${HEADERS} )

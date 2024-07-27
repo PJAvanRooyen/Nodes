@@ -1,4 +1,4 @@
-#include "CentralWidget.h"
+#include "NodeArea.h"
 #include "EventSystem/Communicator.h"
 #include "EventSystem/Events/EvNode.h"
 #include "EventSystem/Events/EvConnection.h"
@@ -10,27 +10,27 @@
 namespace UI{
 
 void
-CentralWidget::onNodeAdd(QRectF rect, QString text, QString tooltip)
+NodeArea::onNodeAdd(QRectF rect, QString text, QString tooltip)
 {
     auto req = Shared::EventSystem::EvNodeAddReq(std::move(rect), std::move(text), std::move(tooltip));
     Shared::EventSystem::Communicator::instance().postEvent(req);
 }
 
-void CentralWidget::onNodeRemove(QUuid nodeId)
+void NodeArea::onNodeRemove(QUuid nodeId)
 {
     auto req = Shared::EventSystem::EvNodeRemoveReq(nodeId);
     Shared::EventSystem::Communicator::instance().postEvent(req);
 }
 
-void CentralWidget::onConnectionAdd(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
+void NodeArea::onConnectionAdd(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
 {
     // TODO: send event to add connection instead.
     Q_EMIT connectionAdd(std::move(nodeId1), std::move(nodeId2), std::move(text), std::move(tooltip));
 }
 
-CentralWidget::CentralWidget(QWidget *parent)
+NodeArea::NodeArea(QWidget *parent)
     : QWidget(parent)
-    , mView(new CentralWidgetView(this))
+    , mView(new NodeAreaView(this))
 {
     auto &communicator = Shared::EventSystem::Communicator::instance();
     communicator.connect(this,
@@ -39,37 +39,37 @@ CentralWidget::CentralWidget(QWidget *parent)
                           Shared::EventSystem::EvConnectionAddResp::staticType(),
                           });
 
-    connect(mView.get(), &CentralWidgetView::nodeAdd, this, &CentralWidget::onNodeAdd);
-    connect(mView.get(), &CentralWidgetView::nodeRemove, this, &CentralWidget::onNodeRemove);
-    connect(mView.get(), &CentralWidgetView::connectionAdd, this, &CentralWidget::onConnectionAdd);
+    connect(mView.get(), &NodeAreaView::nodeAdd, this, &NodeArea::onNodeAdd);
+    connect(mView.get(), &NodeAreaView::nodeRemove, this, &NodeArea::onNodeRemove);
+    connect(mView.get(), &NodeAreaView::connectionAdd, this, &NodeArea::onConnectionAdd);
 }
 
-QPointer<CentralWidgetView> CentralWidget::view()
+QPointer<NodeAreaView> NodeArea::view()
 {
     return mView.get();
 }
 
-void CentralWidget::reset()
+void NodeArea::reset()
 {
     mView->reset();
 }
 
-void CentralWidget::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
+void NodeArea::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
 {
     mView->addNode(std::move(id), std::move(rect), std::move(text), std::move(tooltip));
 }
 
-void CentralWidget::removeNode(const QUuid &id)
+void NodeArea::removeNode(const QUuid &id)
 {
     mView->removeNode(std::move(id));
 }
 
-void CentralWidget::addConnection(QUuid nodeId1, QUuid nodeId2,  QString text, QString tooltip)
+void NodeArea::addConnection(QUuid nodeId1, QUuid nodeId2,  QString text, QString tooltip)
 {
     mView->addConnection(std::move(nodeId1), std::move(nodeId2), std::move(text), std::move(tooltip));
 }
 
-void CentralWidget::customEvent(QEvent *event)
+void NodeArea::customEvent(QEvent *event)
 {
     Q_ASSERT(event);
     const auto eventType = event->type();

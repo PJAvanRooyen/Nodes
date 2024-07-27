@@ -1,4 +1,4 @@
-#include "CentralWidgetView.h"
+#include "NodeAreaView.h"
 #include "GraphicsNode.h"
 #include "GraphicsConnection.h"
 
@@ -8,7 +8,7 @@
 
 namespace UI{
 
-CentralWidgetView::CentralWidgetView(QWidget *parent)
+NodeAreaView::NodeAreaView(QWidget *parent)
     : QGraphicsView(parent)
     , mScene(new Scene(this))
     , mDragStartItem(Q_NULLPTR)
@@ -19,14 +19,14 @@ CentralWidgetView::CentralWidgetView(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
-void CentralWidgetView::reset()
+void NodeAreaView::reset()
 {
     mScene->clear();
     mDragStartItem = nullptr;
     mTempConnectionLine= nullptr;
 }
 
-void CentralWidgetView::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
+void NodeAreaView::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
 {
     auto* node = new GraphicsNode(id);
     node->setText(std::move(text));
@@ -39,7 +39,7 @@ void CentralWidgetView::addNode(QUuid id, QRectF rect, QString text, QString too
     mScene->addItem(node);
 }
 
-bool CentralWidgetView::removeNode(const QUuid &id)
+bool NodeAreaView::removeNode(const QUuid &id)
 {
     bool removed = false;
     const auto items = mScene->items();
@@ -63,7 +63,7 @@ bool CentralWidgetView::removeNode(const QUuid &id)
     return removed;
 }
 
-void CentralWidgetView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
+void NodeAreaView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
 {
     QVariant id = QVariant::fromValue<QPair<QUuid, QUuid>>(qMakePair(nodeId1, nodeId2));
     if (mTempConnectionLine && mDragStartItem && mTempConnectionLine->data(GraphicsItemData::DataRole::ID) == id) {
@@ -110,7 +110,7 @@ void CentralWidgetView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text
     }
 }
 
-void CentralWidgetView::mousePressEvent(QMouseEvent *event)
+void NodeAreaView::mousePressEvent(QMouseEvent *event)
 {
     QGraphicsView::mousePressEvent(event);
     if(event->button() == Qt::MouseButton::LeftButton){
@@ -132,7 +132,7 @@ void CentralWidgetView::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void CentralWidgetView::mouseMoveEvent(QMouseEvent *event)
+void NodeAreaView::mouseMoveEvent(QMouseEvent *event)
 {
     if (mTempConnectionLine && mDragStartItem) {
         mTempConnectionLine->setLine(QLineF(mDragStartItem->boundingRect().center(), event->pos()));
@@ -140,7 +140,7 @@ void CentralWidgetView::mouseMoveEvent(QMouseEvent *event)
     QGraphicsView::mouseMoveEvent(event);
 }
 
-void CentralWidgetView::mouseReleaseEvent(QMouseEvent *event)
+void NodeAreaView::mouseReleaseEvent(QMouseEvent *event)
 {
     QGraphicsView::mouseReleaseEvent(event);
 
@@ -173,7 +173,7 @@ void CentralWidgetView::mouseReleaseEvent(QMouseEvent *event)
     }
 }
 
-void CentralWidgetView::mouseDoubleClickEvent(QMouseEvent *event)
+void NodeAreaView::mouseDoubleClickEvent(QMouseEvent *event)
 {
     QGraphicsView::mouseDoubleClickEvent(event);
 
@@ -186,13 +186,13 @@ void CentralWidgetView::mouseDoubleClickEvent(QMouseEvent *event)
     Q_EMIT nodeAdd(rect);
 }
 
-void CentralWidgetView::resizeEvent(QResizeEvent *event)
+void NodeAreaView::resizeEvent(QResizeEvent *event)
 {
     QGraphicsView::resizeEvent(event);
     mScene->setSceneRect(rect());
 }
 
-void CentralWidgetView::contextMenuEvent(QContextMenuEvent *event)
+void NodeAreaView::contextMenuEvent(QContextMenuEvent *event)
 {
     auto scenePos = mapToScene(event->pos());
     auto items = scene()->items(scenePos);

@@ -1,7 +1,8 @@
-#ifndef NodeStore_H
-#define NodeStore_H
+#ifndef NodeManager_H
+#define NodeManager_H
 
-#include "NodeManager.h"
+#include "InteractionHandler.h"
+#include "NodeHandler.h"
 
 #include <QObject>
 #include <QRectF>
@@ -9,13 +10,13 @@
 #include <QUuid>
 
 namespace Core {
-class NodeStore : public QObject
+class NodeManager : public QObject
 {
     Q_OBJECT
 
 public:
-    NodeStore();
-    virtual ~NodeStore() = default;
+    NodeManager();
+    virtual ~NodeManager() = default;
 
     void init();
 
@@ -30,7 +31,8 @@ private:
     void connect(QUuid node1Id, QUuid node2Id, QString text = QString(), QString tooltip = QString());
 
 private:
-    InterconnectedMemory::VisualNodeManager<100> mNodeManager;
+    InterconnectedMemory::VisualNodeManager<100> mNodeHandler;
+    InteractionHandler mInteractionHandler;
 };
 }
-#endif // NodeStore_H
+#endif // NodeManager_H
