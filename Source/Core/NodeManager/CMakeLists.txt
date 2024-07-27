@@ -21,5 +21,5 @@ set( SOURCES
 
 add_library( ${TARGET_NAME} STATIC ${SOURCES} ${HEADERS} )
 
-target_link_libraries( ${TARGET_NAME} Qt${QT_VERSION_MAJOR}::Core Shared)
+target_link_libraries( ${TARGET_NAME} Qt${QT_VERSION_MAJOR}::Core Shared Node)
 
