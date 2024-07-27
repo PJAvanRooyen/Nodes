@@ -34,8 +34,6 @@ set(PROJECT_SOURCES
   InteractionHandler.cpp
   Interactions.h
   
-  Node.h
-  Node.cpp
   ConnectionHandler.h
   ConnectionHandler.cpp
   NodeManager.h

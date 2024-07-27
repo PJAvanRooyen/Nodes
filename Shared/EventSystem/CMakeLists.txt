@@ -10,6 +10,10 @@ set( SOURCES
   Communicator.cpp
 )
 
-add_library( ${TARGET_NAME} ${SOURCES} ${HEADERS} )
+set( OBJ_FILES
+    $<TARGET_OBJECTS:Events>
+    )
 
-target_link_libraries( ${TARGET_NAME} Qt${QT_VERSION_MAJOR}::Core Events )
+add_library( ${TARGET_NAME} ${OBJ_FILES} ${SOURCES} ${HEADERS} )
+
+target_link_libraries( ${TARGET_NAME} Qt${QT_VERSION_MAJOR}::Core Events)
