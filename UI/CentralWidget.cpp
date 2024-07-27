@@ -1,8 +1,7 @@
 #include "CentralWidget.h"
-#include "Shared/EventSystem/Communicator.h"
-#include "Shared/EventSystem/Events/EvNode.h"
-#include "Shared/EventSystem/Events/EvConnection.h"
-#include "Shared/EventSystem/Events/EvInteraction.h"
+#include "EventSystem/Communicator.h"
+#include "EventSystem/Events/EvNode.h"
+#include "EventSystem/Events/EvConnection.h"
 
 #include <QApplication>
 #include <QScreen>

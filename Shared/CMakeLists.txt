@@ -3,4 +3,14 @@ set( TARGET_NAME Shared )
 add_subdirectory( EventSystem )
 add_subdirectory( Node )
 
-add_library( ${TARGET_NAME} ${OBJ_FILES} EventSystem)
+set( HEADERS
+  StaticTypedefs.h
+)
+
+add_library( ${TARGET_NAME} )
+
+target_include_directories( ${TARGET_NAME} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/EventSystem
+    ${CMAKE_CURRENT_SOURCE_DIR}/Node
+)

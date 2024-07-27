@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "CentralWidget.h"
-#include "NodeStore.h"
-#include "InteractionModule.h"
+#include "Core/NodeStore/NodeStore.h"
+#include "Core/InteractionModule/InteractionModule.h"
 #include "Shared/EventSystem/Communicator.h"
 
 #include <QApplication>

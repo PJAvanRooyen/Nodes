@@ -2,7 +2,7 @@
 #define EvInteraction_H
 
 #include "AbstractEvent.h"
-#include "Node.h"
+#include "Node/Node.h"
 
 #include <vector>
 

@@ -2,7 +2,7 @@
 #define NodeManager_H
 
 #include "ConnectionHandler.h"
-#include "Shared/Node/Node.h"
+#include "Node/Node.h"
 
 #include <vector>
 #include <memory>

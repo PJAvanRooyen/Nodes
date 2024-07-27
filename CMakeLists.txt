@@ -13,36 +13,7 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
-  StaticTypedefs.h
-
   main.cpp
-  mainwindow.cpp
-  mainwindow.h
-  CentralWidget.h
-  CentralWidget.cpp
-  CentralWidgetView.h
-  CentralWidgetView.cpp
-  Scene.h
-  Scene.cpp
-  GraphicsItem.h
-  GraphicsItem.cpp
-  GraphicsConnection.h
-  GraphicsConnection.cpp
-  GraphicsNode.h
-  GraphicsNode.cpp
-  InteractionHandler.h
-  InteractionHandler.cpp
-  Interactions.h
-  
-  ConnectionHandler.h
-  ConnectionHandler.cpp
-  NodeManager.h
-  NodeManager.cpp
-  
-  NodeStore.h
-  NodeStore.cpp
-  InteractionModule.h
-  InteractionModule.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -69,8 +40,12 @@ else()
 endif()
 
 add_subdirectory( Shared )
+add_subdirectory( Core )
+add_subdirectory( UI )
 
-target_link_libraries(Nodes PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Shared EventSystem)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Shared, ${CMAKE_CURRENT_SOURCE_DIR}/Core, ${CMAKE_CURRENT_SOURCE_DIR}/UI)
+
+target_link_libraries(Nodes PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Shared Core UI EventSystem NodeStore InteractionModule)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
