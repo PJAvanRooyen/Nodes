@@ -1,6 +1,7 @@
 #ifndef NodeAreaView_H
 #define NodeAreaView_H
 
+#include "Node/Node.h"
 #include "Scene.h"
 
 #include <QPointer>
@@ -32,6 +33,8 @@ public:
     bool removeNode(const QUuid& id);
 
     void addConnection(QUuid nodeId1, QUuid nodeId2,  QString text = QString(), QString tooltip = QString());
+
+    void update(std::vector<std::shared_ptr<Shared::IVisualNodeWrapper>> nodes);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

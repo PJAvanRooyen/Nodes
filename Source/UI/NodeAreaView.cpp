@@ -19,14 +19,16 @@ NodeAreaView::NodeAreaView(QWidget *parent)
     setRenderHint(QPainter::Antialiasing);
 }
 
-void NodeAreaView::reset()
+void
+NodeAreaView::reset()
 {
     mScene->clear();
     mDragStartItem = nullptr;
     mTempConnectionLine= nullptr;
 }
 
-void NodeAreaView::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
+void
+NodeAreaView::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
 {
     auto* node = new GraphicsNode(id);
     node->setText(std::move(text));
@@ -39,7 +41,8 @@ void NodeAreaView::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
     mScene->addItem(node);
 }
 
-bool NodeAreaView::removeNode(const QUuid &id)
+bool
+NodeAreaView::removeNode(const QUuid &id)
 {
     bool removed = false;
     const auto items = mScene->items();
@@ -47,15 +50,20 @@ bool NodeAreaView::removeNode(const QUuid &id)
         if(!item){
             continue;
         }
+        auto itemType = item->data(GraphicsItemData::DataRole::Type).value<ItemType>();
         auto itemDataVar = item->data(GraphicsItemData::DataRole::ID);
-        if(itemDataVar.canConvert<QUuid>() && itemDataVar.value<QUuid>() == id){
-            mScene->removeItem(item);
-            removed = true;
-        } else if(itemDataVar.canConvert<std::pair<QUuid, QUuid>>()){
-            // Remove connections to/from the node
-            auto connectionId = itemDataVar.value<std::pair<QUuid, QUuid>>();
-            if(connectionId.first == id || connectionId.second == id){
+        if(itemType == ItemType::Node){
+            if(itemDataVar.canConvert<QUuid>() && itemDataVar.value<QUuid>() == id){
                 mScene->removeItem(item);
+                removed = true;
+            }
+        } else if(itemType == ItemType::Connection){
+            if(itemDataVar.canConvert<std::pair<QUuid, QUuid>>()){
+                // Remove connections to/from the node
+                auto connectionId = itemDataVar.value<std::pair<QUuid, QUuid>>();
+                if(connectionId.first == id || connectionId.second == id){
+                    mScene->removeItem(item);
+                }
             }
         }
     }
@@ -63,7 +71,8 @@ bool NodeAreaView::removeNode(const QUuid &id)
     return removed;
 }
 
-void NodeAreaView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
+void
+NodeAreaView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text, QString tooltip)
 {
     QVariant id = QVariant::fromValue<QPair<QUuid, QUuid>>(qMakePair(nodeId1, nodeId2));
     if (mTempConnectionLine && mDragStartItem && mTempConnectionLine->data(GraphicsItemData::DataRole::ID) == id) {
@@ -110,7 +119,37 @@ void NodeAreaView::addConnection(QUuid nodeId1, QUuid nodeId2, QString text, QSt
     }
 }
 
-void NodeAreaView::mousePressEvent(QMouseEvent *event)
+void
+NodeAreaView::update(std::vector<std::shared_ptr<Shared::IVisualNodeWrapper>> nodes)
+{
+    const auto items = mScene->items();
+    for(auto* item : items){
+        if(!item){
+            continue;
+        }
+        auto itemType = item->data(GraphicsItemData::DataRole::Type).value<ItemType>();
+        if(itemType != ItemType::Node){
+            continue;
+        }
+        auto itemDataVar = item->data(GraphicsItemData::DataRole::ID);
+        if(!itemDataVar.canConvert<QUuid>()){
+            continue;
+        }
+        auto id = itemDataVar.value<QUuid>();
+        if(auto updatedNodeIt = std::find_if(nodes.cbegin(), nodes.cend(),
+            [&id](const std::shared_ptr<Shared::IVisualNodeWrapper>& node){
+                return node && node->id() == id;
+            }); updatedNodeIt != nodes.cend()){
+            auto& node = static_cast<GraphicsNode&>(*item);
+            const auto& updatedItem = *updatedNodeIt;
+            node.setRect(updatedItem->rect());
+            // TODO: update other parts e.g. text if it changed.
+        }
+    }
+}
+
+void
+NodeAreaView::mousePressEvent(QMouseEvent *event)
 {
     QGraphicsView::mousePressEvent(event);
     if(event->button() == Qt::MouseButton::LeftButton){
@@ -132,7 +171,8 @@ void NodeAreaView::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void NodeAreaView::mouseMoveEvent(QMouseEvent *event)
+void
+NodeAreaView::mouseMoveEvent(QMouseEvent *event)
 {
     if (mTempConnectionLine && mDragStartItem) {
         mTempConnectionLine->setLine(QLineF(mDragStartItem->boundingRect().center(), event->pos()));
@@ -140,7 +180,8 @@ void NodeAreaView::mouseMoveEvent(QMouseEvent *event)
     QGraphicsView::mouseMoveEvent(event);
 }
 
-void NodeAreaView::mouseReleaseEvent(QMouseEvent *event)
+void
+NodeAreaView::mouseReleaseEvent(QMouseEvent *event)
 {
     QGraphicsView::mouseReleaseEvent(event);
 
@@ -173,7 +214,8 @@ void NodeAreaView::mouseReleaseEvent(QMouseEvent *event)
     }
 }
 
-void NodeAreaView::mouseDoubleClickEvent(QMouseEvent *event)
+void
+NodeAreaView::mouseDoubleClickEvent(QMouseEvent *event)
 {
     QGraphicsView::mouseDoubleClickEvent(event);
 
@@ -186,13 +228,15 @@ void NodeAreaView::mouseDoubleClickEvent(QMouseEvent *event)
     Q_EMIT nodeAdd(rect);
 }
 
-void NodeAreaView::resizeEvent(QResizeEvent *event)
+void
+NodeAreaView::resizeEvent(QResizeEvent *event)
 {
     QGraphicsView::resizeEvent(event);
     mScene->setSceneRect(rect());
 }
 
-void NodeAreaView::contextMenuEvent(QContextMenuEvent *event)
+void
+NodeAreaView::contextMenuEvent(QContextMenuEvent *event)
 {
     auto scenePos = mapToScene(event->pos());
     auto items = scene()->items(scenePos);

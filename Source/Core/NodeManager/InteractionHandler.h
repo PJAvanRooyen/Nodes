@@ -35,13 +35,45 @@ public:
      * \param interactFn, the function that dictates how an item should interact with its neighbours.
      * \return true if all interactions resulted in a state where there is no more interaction required.
      */
-    template <template<typename...> class ListType, typename ItemType>
+    template <template<typename...> class ListType, typename ItemType, std::enable_if_t<!std::is_pointer_v<ItemType> && !is_unique_ptr_v<ItemType> && !is_shared_ptr_v<ItemType>>* = Q_NULLPTR>
     bool solve(ListType<ItemType>& items, InteractFn<ItemType> interactFn = &InteractFnExample::collidingCircles) const{
-        std::vector<std::reference_wrapper<ItemType>> refVector;
-        refVector.reserve(items.size());
-        std::transform(items.begin(), items.end(), std::back_inserter(refVector),
-                       [](ItemType& item) { return std::reference_wrapper<ItemType>(item); });
-        return solve(refVector, interactFn);
+        std::vector<ItemType*> ptrVector;
+        ptrVector.reserve(items.size());
+        std::transform(items.begin(), items.end(), std::back_inserter(ptrVector),
+                       [](ItemType& item) { return std::ref(item); });
+        return solve(ptrVector, interactFn);
+    }
+
+    /*!
+     * \brief calcualtes the relative positions of items and moves them
+     * based on an interaction function if they interact.
+     * \param items, the items being moved.
+     * \param interactFn, the function that dictates how an item should interact with its neighbours.
+     * \return true if all interactions resulted in a state where there is no more interaction required.
+     */
+    template <template<typename...> class ListType, typename ItemType>
+    bool solve(ListType<std::unique_ptr<ItemType>>& items, InteractFn<ItemType> interactFn = &InteractFnExample::collidingCircles) const{
+        std::vector<ItemType*> ptrVector;
+        ptrVector.reserve(items.size());
+        std::transform(items.begin(), items.end(), std::back_inserter(ptrVector),
+                       [](const std::unique_ptr<ItemType>& ptr) { return ptr.get(); });
+        return solve(ptrVector, interactFn);
+    }
+
+    /*!
+     * \brief calcualtes the relative positions of items and moves them
+     * based on an interaction function if they interact.
+     * \param items, the items being moved.
+     * \param interactFn, the function that dictates how an item should interact with its neighbours.
+     * \return true if all interactions resulted in a state where there is no more interaction required.
+     */
+    template <template<typename...> class ListType, typename ItemType>
+    bool solve(ListType<std::shared_ptr<ItemType>>& items, InteractFn<ItemType> interactFn = &InteractFnExample::collidingCircles) const{
+        std::vector<ItemType*> ptrVector;
+        ptrVector.reserve(items.size());
+        std::transform(items.begin(), items.end(), std::back_inserter(ptrVector),
+                       [](const std::shared_ptr<ItemType>& ptr) { return ptr.get(); });
+        return solve(ptrVector, interactFn);
     }
 
     /*!
@@ -53,28 +85,7 @@ public:
      */
     template <template<typename...> class ListType, typename ItemType>
     bool solve(ListType<ItemType*>& items, InteractFn<ItemType> interactFn = &InteractFnExample::collidingCircles) const{
-        std::vector<std::reference_wrapper<ItemType>> refVector;
-        refVector.reserve(items.size());
-        std::transform(items.begin(), items.end(), std::back_inserter(refVector),
-                       [](ItemType* ptr) { return std::ref(*ptr); });
-        return solve(refVector, interactFn);
-    }
-
-    /*!
-     * \brief calcualtes the relative positions of items and moves them
-     * based on an interaction function if they interact.
-     * \param items, the items being moved.
-     * \param interactFn, the function that dictates how an item should interact with its neighbours.
-     * \return true if all interactions resulted in a state where there is no more interaction required.
-     */
-    template <template<typename...> class ListType, typename ItemType>
-    bool solve(ListType<std::reference_wrapper<ItemType>>& items, InteractFn<ItemType> interactFn = &InteractFnExample::collidingCircles) const{
-        if(mItemFlags & ItemFlag::ItemsHaveVariableSize){
-            return solveVariableSize(items, interactFn);
-        }else{
-            // TODO: solve without needing to measure every item.
-            return solveVariableSize(items, interactFn);
-        }
+        return solveVariableSize(items, interactFn);
     }
 
 private:
@@ -88,7 +99,7 @@ private:
      * \return true if all interactions resulted in a state where there is no more interaction required.
      */
     template <template<class...> class ListType, class ItemType>
-    bool solveVariableSize(ListType<std::reference_wrapper<ItemType>>& items, InteractFn<ItemType> interactFn) const{
+    bool solveVariableSize(ListType<ItemType*>& items, InteractFn<ItemType> interactFn) const{
         static_assert(std::is_same_v<ItemType, ItemType>);
         static_assert(is_list<ListType<std::reference_wrapper<ItemType>>>());
         static_assert(has_rect<ItemType>());
@@ -107,7 +118,7 @@ private:
         // this is used to efficiently calculate item proximities.
         size_t index = 0;
         for (const auto& item : items) {
-            const auto& rect = item.get().rect();
+            const auto& rect = item->rect();
             const auto& itemPos = rect.topLeft();
             xPositions.emplace_back(itemPos.x(), index);
             yPositions.emplace_back(itemPos.y(), index);
@@ -133,7 +144,7 @@ private:
             size_t itemIndex = xPosItemIndex.second;
             auto& item = items.at(itemIndex);
 
-            const auto& itemRect = item.get().rect();
+            const auto& itemRect = item->rect();
             const auto& itemPos = itemRect.topLeft();
             const double itemXPos = itemPos.x();
             const double itemYPos = itemPos.y();
@@ -154,7 +165,7 @@ private:
             double highestYPos = itemYPos + mMaxInteractionDistance + largestSize.second;
 
             std::set<size_t> checkedIndices;
-            std::vector<std::reference_wrapper<ItemType>> neighbours;
+            std::vector<ItemType*> neighbours;
             //! from itemXIndex in xPositions, iterate backwards until the iterated item's right boarder is < lowestXPos
             if(xPosItemIndexIt != xPositions.cbegin()){
                 auto prevXPosItemIndexIt = xPosItemIndexIt - 1;
@@ -166,8 +177,8 @@ private:
                         continue;
                     }
                     checkedIndices.insert(earlierItemIndex);
-                    auto& earlierItem = items.at(earlierItemIndex);
-                    const auto& rect = earlierItem.get().rect();
+                    auto* earlierItem = items.at(earlierItemIndex);
+                    const auto& rect = earlierItem->rect();
                     const auto& pos = rect.topLeft();
                     auto x = pos.x();
                     auto y = pos.y();
@@ -195,8 +206,8 @@ private:
                         continue;
                     }
                     checkedIndices.insert(laterItemIndex);
-                    auto& laterItem = items.at(laterItemIndex);
-                    const auto& rect = laterItem.get().rect();
+                    auto* laterItem = items.at(laterItemIndex);
+                    const auto& rect = laterItem->rect();
                     const auto& pos = rect.topLeft();
                     auto x = pos.x();
                     auto y = pos.y();
@@ -223,8 +234,8 @@ private:
                         continue;
                     }
                     checkedIndices.insert(earlierItemIndex);
-                    auto& earlierItem = items.at(earlierItemIndex);
-                    const auto& rect = earlierItem.get().rect();
+                    auto* earlierItem = items.at(earlierItemIndex);
+                    const auto& rect = earlierItem->rect();
                     const auto& pos = rect.topLeft();
                     auto x = pos.x();
                     auto y = pos.y();
@@ -251,8 +262,8 @@ private:
                         continue;
                     }
                     checkedIndices.insert(laterItemIndex);
-                    auto& laterItem = items.at(laterItemIndex);
-                    const auto& rect = laterItem.get().rect();
+                    auto* laterItem = items.at(laterItemIndex);
+                    const auto& rect = laterItem->rect();
                     const auto& pos = rect.topLeft();
                     auto x = pos.x();
                     auto y = pos.y();

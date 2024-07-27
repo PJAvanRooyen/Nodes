@@ -2,6 +2,7 @@
 #include "EventSystem/Communicator.h"
 #include "EventSystem/Events/EvNode.h"
 #include "EventSystem/Events/EvConnection.h"
+#include "EventSystem/Events/EvInteraction.h"
 
 #include <QApplication>
 #include <QScreen>
@@ -37,6 +38,7 @@ NodeArea::NodeArea(QWidget *parent)
                          {Shared::EventSystem::EvNodeAddResp::staticType(),
                           Shared::EventSystem::EvNodeRemoveResp::staticType(),
                           Shared::EventSystem::EvConnectionAddResp::staticType(),
+                          Shared::EventSystem::EvInteractionsSolveResp::staticType(),
                           });
 
     connect(mView.get(), &NodeAreaView::nodeAdd, this, &NodeArea::onNodeAdd);
@@ -56,7 +58,10 @@ void NodeArea::reset()
 
 void NodeArea::addNode(QUuid id, QRectF rect, QString text, QString tooltip)
 {
-    mView->addNode(std::move(id), std::move(rect), std::move(text), std::move(tooltip));
+    mView->addNode(id, std::move(rect), std::move(text), std::move(tooltip));
+
+    auto req = Shared::EventSystem::EvInteractionsSolveReq({}, {std::move(id)});
+    Shared::EventSystem::Communicator::instance().postEvent(req);
 }
 
 void NodeArea::removeNode(const QUuid &id)
@@ -67,6 +72,11 @@ void NodeArea::removeNode(const QUuid &id)
 void NodeArea::addConnection(QUuid nodeId1, QUuid nodeId2,  QString text, QString tooltip)
 {
     mView->addConnection(std::move(nodeId1), std::move(nodeId2), std::move(text), std::move(tooltip));
+}
+
+void NodeArea::update(std::vector<std::shared_ptr<Shared::IVisualNodeWrapper>> nodes)
+{
+    mView->update(nodes);
 }
 
 void NodeArea::customEvent(QEvent *event)
@@ -82,6 +92,9 @@ void NodeArea::customEvent(QEvent *event)
     } else if (eventType == Shared::EventSystem::EvConnectionAddResp::staticType()) {
         const auto& ev = static_cast<Shared::EventSystem::EvConnectionAddResp&>(*event);
         addConnection(ev.node1Id, ev.node2Id);
+    } else if (eventType == Shared::EventSystem::EvInteractionsSolveResp::staticType()) {
+        auto& ev = static_cast<Shared::EventSystem::EvInteractionsSolveResp&>(*event);
+        update(ev.nodes);
     }
 }
 

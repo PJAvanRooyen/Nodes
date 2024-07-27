@@ -47,40 +47,48 @@ private:
 };
 
 template<class NodeType>
-class AbstractConnectedNodeWrapper
+class INodeWrapper
 {
 public:
-    AbstractConnectedNodeWrapper(std::reference_wrapper<NodeType> node)
-        : mNode(node)
-    {
-    }
-
     virtual bool isConnected() const = 0;
 
     virtual bool isConnectedTo(size_t id) const = 0;
 
-    std::reference_wrapper<NodeType> node() const{
-        return mNode;
-    }
+    virtual std::reference_wrapper<NodeType> node() const = 0;
+};
 
-private:
-    std::reference_wrapper<NodeType> mNode;
+class IVisualNodeWrapper : public INodeWrapper<Shared::VisualNode>
+{
+public:
+    using NodeType = Shared::VisualNode;
+
+    virtual size_t index() const = 0;
+
+    virtual const QUuid& id() const= 0;
+
+    virtual QRectF rect() const = 0;
+
+    virtual void setRect(QRectF rect)= 0;
+
+    virtual const QString& text() const = 0;
+
+    virtual void setText(QString text) = 0;
 };
 
 namespace InterconnectedMemory {
-template<class NodeType, int32_t MaxSize>
-class ConnectedNodeWrapper : public AbstractConnectedNodeWrapper<NodeType>
+template<int32_t MaxSize>
+class VisualNodeWrapper : public IVisualNodeWrapper
 {
-public:
-    using Base = AbstractConnectedNodeWrapper<NodeType>;
+    using NodeType = IVisualNodeWrapper::NodeType;
     using ConnectionsContainerType = std::pair<std::reference_wrapper<const std::bitset<MaxSize>>, std::reference_wrapper<const std::bitset<MaxSize>>>;
 
-    ConnectedNodeWrapper(
+public:
+    VisualNodeWrapper(
         size_t nodeIndex,
         std::reference_wrapper<NodeType> node,
         ConnectionsContainerType& connections)
-        : Base(node)
-        , mNodeIndex(nodeIndex)
+        : mNodeIndex(nodeIndex)
+        , mNode(node)
         , mConnections(connections)
     {
     }
@@ -99,60 +107,41 @@ public:
         return mConnections.first.get().test(id) || mConnections.second.get().test(id);
     }
 
-private:
-    size_t mNodeIndex;
-    ConnectionsContainerType mConnections;
-};
-
-template<int32_t MaxSize>
-class ConnectedVisualNodeWrapper : public ConnectedNodeWrapper<Shared::VisualNode, MaxSize>
-{
-    using Base = ConnectedNodeWrapper<Shared::VisualNode, MaxSize>;
-
-public:
-    ConnectedVisualNodeWrapper(
-        size_t nodeIndex,
-        std::reference_wrapper<Shared::VisualNode> node,
-        typename Base::ConnectionsContainerType& connections)
-        : Base(nodeIndex, node, connections)
-    {
+    std::reference_wrapper<NodeType> node() const override{
+        return mNode;
     }
 
     const QUuid& id() const
     {
-        return Base::node().get().id();
+        return mNode.get().id();
     }
 
     QRectF rect() const
     {
-        return Base::node().get().rect();
+        return mNode.get().rect();
     }
 
     void setRect(QRectF rect)
     {
-        Base::node().get().setRect(std::move(rect));
+        mNode.get().setRect(std::move(rect));
     }
 
     const QString& text() const
     {
-        return Base::node().get().text();
+        return mNode.get().text();
     }
 
     void setText(QString text)
     {
-        Base::node().get().setText(std::move(text));
+        mNode.get().setText(std::move(text));
     }
 
-    QPointF center() const
-    {
-        return Base::node().get().center();
-    }
-
-    QSizeF size() const
-    {
-        return Base::node().get().size();
-    }
+private:
+    size_t mNodeIndex;
+    std::reference_wrapper<NodeType> mNode;
+    ConnectionsContainerType mConnections;
 };
+
 }
 
 }

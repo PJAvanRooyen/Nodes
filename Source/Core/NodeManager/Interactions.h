@@ -8,11 +8,11 @@
 namespace Core {
 
 template<class ItemType>
-using InteractFn = bool (*)(std::reference_wrapper<ItemType> item, std::vector<std::reference_wrapper<ItemType>>& neighbours);
+using InteractFn = bool (*)(ItemType* item, std::vector<ItemType*>& neighbours);
 
 namespace InteractFnExample {
 template<class ItemType>
-bool collidingCircles(std::reference_wrapper<ItemType> itemRef, std::vector<std::reference_wrapper<ItemType>>& neighbours){
+bool collidingCircles(ItemType* item, std::vector<ItemType*>& neighbours){
     auto collideOvals = [](const QRectF& itemRect, const QRectF& neighbourRect) -> QPointF {
         QPointF offset = itemRect.center() - neighbourRect.center();
         double distance = std::hypot(offset.x(), offset.y());
@@ -23,20 +23,24 @@ bool collidingCircles(std::reference_wrapper<ItemType> itemRef, std::vector<std:
         if(desiredDistance > distance){
             moveDistance = desiredDistance - distance;
         }
-        QPointF moveVector = offset * moveDistance/distance;
+        QPointF moveVector = offset;
+        if(qFuzzyIsNull(distance)){
+            // If items are prefectly overlapping, then just move right.
+            moveVector = QPointF(moveDistance, 0.0);
+        }else{
+            moveVector *= moveDistance/distance;
+        }
 
         return moveVector;
     };
 
     bool isSolved = true;
-    auto& item = itemRef.get();
-    QRectF rect = item.rect();
+    QRectF rect = item->rect();
 
     //! the movement it wants to make to avoid existing collisions.
     QPointF displacementSum;
-    for(auto& neighbourRef : neighbours){
-        auto& neighbour = neighbourRef.get();
-        QRectF neighbourRect = neighbour.rect();
+    for(auto* neighbour : neighbours){
+        QRectF neighbourRect = neighbour->rect();
         QPointF displacement = collideOvals(rect, neighbourRect);
         displacementSum += displacement;
     }
@@ -48,9 +52,8 @@ bool collidingCircles(std::reference_wrapper<ItemType> itemRef, std::vector<std:
     //! the movement it wants to make afterwards to avoid new collisions.
     QRectF movedRect = rect.translated(displacementSum);
     QPointF postMoveDisplacementSum;
-    for(auto& neighbourRef : neighbours){
-        auto& neighbour = neighbourRef.get();
-        QRectF neighbourRect = neighbour.rect();
+    for(auto* neighbour : neighbours){
+        QRectF neighbourRect = neighbour->rect();
         QPointF displacement = collideOvals(movedRect, neighbourRect);
         postMoveDisplacementSum += displacement;
     }
@@ -69,14 +72,14 @@ bool collidingCircles(std::reference_wrapper<ItemType> itemRef, std::vector<std:
         // therfore the interaction has not yet been fully solved.
         isSolved = false;
     }
-    item.setRect(rect);
+    item->setRect(rect);
     return isSolved;
 }
 }
 
 namespace InteractFnExample {
 template<class ItemType>
-bool mindmapInteractions(std::reference_wrapper<ItemType> itemRef, std::vector<std::reference_wrapper<ItemType>>& neighbours){
+bool mindmapInteractions(ItemType* item, std::vector<ItemType*>& neighbours){
     auto interactCircles = [](const QRectF& itemRect, const QRectF& neighbourRect, bool isConnected) -> QPointF {
         QPointF offset = itemRect.center() - neighbourRect.center();
         double distance = std::hypot(offset.x(), offset.y());
@@ -96,21 +99,25 @@ bool mindmapInteractions(std::reference_wrapper<ItemType> itemRef, std::vector<s
         if(desiredDistance > distance || isConnected){
             moveDistance = desiredDistance - distance;
         }
-        QPointF moveVector = offset * moveDistance/distance;
+        QPointF moveVector = offset;
+        if(qFuzzyIsNull(distance)){
+            // If items are prefectly overlapping, then just move right.
+            moveVector = QPointF(moveDistance, 0.0);
+        }else{
+            moveVector *= moveDistance/distance;
+        }
 
         return moveVector;
     };
 
     bool isSolved = true;
-    auto& item = itemRef.get();
-    QRectF rect = item.rect();
+    QRectF rect = item->rect();
 
     //! the movement it wants to make to avoid existing collisions.
     QPointF displacementSum;
-    for(auto& neighbourRef : neighbours){
-        auto& neighbour = neighbourRef.get();
-        QRectF neighbourRect = neighbour.rect();
-        bool isConnected = item.isConnectedTo(neighbour.index());
+    for(auto* neighbour : neighbours){
+        QRectF neighbourRect = neighbour->rect();
+        bool isConnected = item->isConnectedTo(neighbour->index());
         QPointF displacement = interactCircles(rect, neighbourRect, isConnected);
         displacementSum += displacement;
     }
@@ -122,10 +129,9 @@ bool mindmapInteractions(std::reference_wrapper<ItemType> itemRef, std::vector<s
     //! the movement it wants to make afterwards to avoid new collisions.
     QRectF movedRect = rect.translated(displacementSum);
     QPointF postMoveDisplacementSum;
-    for(auto& neighbourRef : neighbours){
-        auto& neighbour = neighbourRef.get();
-        QRectF neighbourRect = neighbour.rect();
-        bool isConnected = item.isConnectedTo(neighbour.index());
+    for(auto* neighbour : neighbours){
+        QRectF neighbourRect = neighbour->rect();
+        bool isConnected = item->isConnectedTo(neighbour->index());
         QPointF displacement = interactCircles(movedRect, neighbourRect, isConnected);
         postMoveDisplacementSum += displacement;
     }
@@ -144,7 +150,7 @@ bool mindmapInteractions(std::reference_wrapper<ItemType> itemRef, std::vector<s
         // therfore the interaction has not yet been fully solved.
         isSolved = false;
     }
-    item.setRect(rect);
+    item->setRect(rect);
     return isSolved;
 }
 }

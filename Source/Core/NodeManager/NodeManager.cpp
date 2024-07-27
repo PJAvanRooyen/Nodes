@@ -2,6 +2,7 @@
 #include "EventSystem/Communicator.h"
 #include "EventSystem/Events/EvNode.h"
 #include "EventSystem/Events/EvConnection.h"
+#include "EventSystem/Events/EvInteraction.h"
 
 namespace Core{
 
@@ -20,6 +21,7 @@ NodeManager::NodeManager()
                          {Shared::EventSystem::EvNodeAddReq::staticType(),
                           Shared::EventSystem::EvNodeRemoveReq::staticType(),
                           Shared::EventSystem::EvConnectionAddReq::staticType(),
+                          Shared::EventSystem::EvInteractionsSolveReq::staticType(),
                           });
 }
 
@@ -48,15 +50,6 @@ void NodeManager::init()
         addNode(QRectF(QPointF(514.14213562373095,514.14213562373095), QSizeF(20,20)));
         connect(mNodeHandler.nodeAt(5)->id(), mNodeHandler.nodes().back()->id());
     }
-
-    auto visualNodeWrappers = mNodeHandler.wrappedNodes();
-    static constexpr int kMaxNumIterations = 10;
-    bool solved = false;
-    int noOfSolves = 0;
-    while(!solved && noOfSolves < kMaxNumIterations){
-        solved = mInteractionHandler.solve(visualNodeWrappers, &Core::InteractFnExample::mindmapInteractions);
-        ++noOfSolves;
-    }
 }
 
 void
@@ -73,6 +66,21 @@ NodeManager::customEvent(QEvent* event) {
     } else if(eventType == Shared::EventSystem::EvConnectionAddReq::staticType()) {
         const auto& ev = static_cast<Shared::EventSystem::EvConnectionAddReq&>(*event);
         connect(ev.node1Id, ev.node2Id, ev.text, ev.tooltip);
+    } else if(eventType == Shared::EventSystem::EvInteractionsSolveReq::staticType()) {
+        const auto& ev = static_cast<Shared::EventSystem::EvInteractionsSolveReq&>(*event);
+
+        std::vector<std::shared_ptr<Shared::IVisualNodeWrapper>> wrappedNodes;
+        mNodeHandler.wrappedNodes(wrappedNodes);
+        static constexpr int kMaxNumIterations = 10;
+        bool solved = false;
+        int noOfSolves = 0;
+        while(!solved && noOfSolves < kMaxNumIterations){
+            solved = mInteractionHandler.solve(wrappedNodes, &Core::InteractFnExample::mindmapInteractions);
+            ++noOfSolves;
+        }
+
+        auto resp = Shared::EventSystem::EvInteractionsSolveResp(wrappedNodes);
+        Shared::EventSystem::Communicator::instance().postEvent(resp);
     }
 }
 
@@ -90,7 +98,7 @@ void NodeManager::addNode(QRectF rect, QString text, QString tooltip)
     { //test
         if(text.isEmpty()){
             auto wrappedNode = mNodeHandler.wrappedNode(nodeId);
-            if(!wrappedNode.has_value()){
+            if(!wrappedNode){
                 return;
             }
             wrappedNode->setText(QString::number(wrappedNode->index()));
@@ -123,17 +131,17 @@ void NodeManager::connect(QUuid node1Id, QUuid node2Id, QString text, QString to
     Q_UNUSED(text);
     Q_UNUSED(tooltip);
     auto wrappedNode1 = mNodeHandler.wrappedNode(node1Id);
-    if(!wrappedNode1.has_value()){
+    if(!wrappedNode1){
         return;
     }
     auto wrappedNode2 = mNodeHandler.wrappedNode(node2Id);
-    if(!wrappedNode2.has_value()){
+    if(!wrappedNode2){
         return;
     }
 
     mNodeHandler.connect(
-        wrappedNode1.value().index(),
-        wrappedNode2.value().index(),
+        wrappedNode1->index(),
+        wrappedNode2->index(),
         decltype(mNodeHandler)::ConnectionType::ParentChild);
 
     auto resp = Shared::EventSystem::EvConnectionAddResp(node1Id, node2Id);

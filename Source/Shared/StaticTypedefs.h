@@ -5,6 +5,7 @@
 
 #include <list>
 #include <vector>
+#include <memory>
 
 #include <QList>
 #include <QRectF>
@@ -18,6 +19,20 @@ template<typename... Ts>
 struct is_list<std::vector<Ts...>> : std::true_type{};
 template<typename... Ts>
 struct is_list<QList<Ts...>> : std::true_type{};
+
+template <typename T>
+struct is_unique_ptr : std::false_type {};
+template <typename T>
+struct is_unique_ptr<std::unique_ptr<T>> : std::true_type {};
+template <typename T>
+constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
+
+template <typename T>
+struct is_shared_ptr : std::false_type {};
+template <typename T>
+struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
+template <typename T>
+constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
 // Test if a type has a method named "METHOD_NAME".
 #define HAS_METHOD(METHOD_NAME) \
